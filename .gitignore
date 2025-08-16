@@ -60,3 +60,41 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+
+##
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# User data and breakpoints
+*.xcuserdatad
+*.xcscmblueprint
+*.xcsettings
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcdebugger
+*.xcbkptlist
+
+# Swift PM
+.build/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+
+# Other
+*.DS_Store
+

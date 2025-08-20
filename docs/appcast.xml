@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Photos Export GPS Fixer Updates</title>
+    <link>https://github.com/rphoto/myapps/tree/gh-pages/appcast.xml</link>
+    <description>Release notes and downloads</description>
+    <language>en</language>
+
+    <item>
+      <title>Version 2.5</title>
+      <sparkle:shortVersionString>2.5</sparkle:shortVersionString>
+      <sparkle:version>1</sparkle:version>
+      <pubDate>Wed, 20 Aug 2025 05:04:16 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://github.com/rphoto/myapps/tree/gh-pages/notes/2.5.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://github.com/rphoto/myapps/tree/gh-pages/releases/PhotosExportGPSFixer-2.5.zip"
+        sparkle:edSignature="8TBIm+hamyN/O73U10mUM040ZQgcfRhboTheZBWtM88VYSb/W7599TxIpon8YyBNPy3eDV31weqt8yHxOY3pBw=="
+        length="4275590"
+        type="application/octet-stream"/>
+    </item>
+
+  </channel>
+</rss>

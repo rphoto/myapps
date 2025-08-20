@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------
-# release.sh — keychain-based Sparkle appcast tool (macOS-safe, self-healing)
+# release.sh — Sparkle appcast tool (macOS-safe, self-healing, dedupe builds)
 # Compatible with /bin/bash 3.2.57 on macOS 18+
 # ---------------------------------------------
 set -euo pipefail
@@ -15,7 +15,6 @@ NOTES_TEMPLATE=""
 # ---------------------------------------
 
 # ---- normalize base URL (avoid // in links) ----
-# Works in bash 3.2
 BASE_URL="${BASE_URL%/}"
 
 # ---- add Sparkle binaries to PATH ----
@@ -61,7 +60,6 @@ ZIP_PATH="$RELEASES_DIR/$ZIP_NAME"
 echo "• Zipping $APP_NAME $SHORT_VERSION → $ZIP_PATH"
 rm -f "$ZIP_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
-# stat on macOS uses -f%z
 ZIP_SIZE=$(stat -f%z "$ZIP_PATH" 2>/dev/null || stat -c%s "$ZIP_PATH")
 
 # ---- sign zip ----
@@ -106,9 +104,7 @@ NOTES_URL="$BASE_URL/notes/$SHORT_VERSION.html"
 APPCAST_URL="$BASE_URL/appcast.xml"
 
 # ---- new appcast item ----
-# macOS date(1) supports %z
 PUBDATE=$(LC_ALL=C date -u +"%a, %d %b %Y %H:%M:%S %z")
-
 NEW_ITEM=$(printf '%s\n' \
 "    <item>" \
 "      <title>Version $SHORT_VERSION</title>" \
@@ -124,11 +120,9 @@ NEW_ITEM=$(printf '%s\n' \
 "        type=\"application/octet-stream\"/>" \
 "    </item>")
 
-# ---- temp area (portable) ----
+# ---- temp area ----
 TMP_DIR=$(mktemp -d -t release_sh_tmp.XXXXXX)
-cleanup() {
-  if [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then rm -rf "$TMP_DIR"; fi
-}
+cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
 trap cleanup EXIT
 
 # ---- ensure appcast exists ----
@@ -152,7 +146,11 @@ EOF
   fi
 }
 
-# ---- self-heal: rebuild appcast with proper header, normalize URLs, dedupe ----
+# ---- self-heal: header first, normalize URLs, remove duplicates ----
+# Dedup logic:
+#  - PRIMARY key: shortVersion + "|" + buildVersion (drop duplicate builds; keep newest/first)
+#  - SECONDARY key: enclosure URL (drop exact file duplicates)
+#  - Legacy double-slash URLs normalized
 repair_appcast_structure() {
   [ ! -f "$APPCAST" ] && return 0
 
@@ -161,31 +159,54 @@ repair_appcast_structure() {
   local bad="${BASE_URL}//"
   local good="${BASE_URL}/"
 
-  # Extract <item> blocks, normalize // paths, and dedupe by shortVersion (keep first)
-  # BSD awk-friendly (no regex in function bodies)
   awk -v bad="$bad" -v good="$good" '
-    BEGIN { initem = 0; buf = "" }
+    BEGIN { initem = 0; buf = ""; removed = 0 }
+    function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    function extract_tag(body, tag,   pos, val, open, after, endpos) {
+      # Extracts the text content of first <tag>...</> occurrence using index()/substr()
+      open = "<" tag ">"
+      pos = index(body, open)
+      if (pos == 0) return ""
+      after = substr(body, pos + length(open))
+      endpos = index(after, "<")
+      if (endpos == 0) return ""
+      val = substr(after, 1, endpos - 1)
+      return trim(val)
+    }
+    function extract_attr(body, attr,   pos, after, q1, val) {
+      # Extracts attribute value like attr="..."
+      pos = index(body, attr "=\"")
+      if (pos == 0) return ""
+      after = substr(body, pos + length(attr) + 2)
+      q1 = index(after, "\"")
+      if (q1 == 0) return ""
+      val = substr(after, 1, q1 - 1)
+      return val
+    }
     function flush_item() {
       if (buf == "") return
       b = buf
-      gsub(bad, good, b) # normalize URLs
+      gsub(bad, good, b)
 
-      # Pull <sparkle:shortVersionString>value<
-      tag = "<sparkle:shortVersionString>"
-      s = index(b, tag)
-      ver = ""
-      if (s > 0) {
-        s2 = s + length(tag)
-        rest = substr(b, s2)
-        e = index(rest, "<")
-        if (e > 0) ver = substr(rest, 1, e - 1)
+      sv = extract_tag(b, "sparkle:shortVersionString")
+      bv = extract_tag(b, "sparkle:version")
+      url = extract_attr(b, "url")
+
+      # Prefer newest: keep FIRST seen instance of the key (assuming feed is newest→oldest)
+      key = sv "|" bv
+
+      if (url != "" && (url in seenUrl)) {
+        removed++
+        buf = ""; return
+      }
+      if (sv != "" && bv != "" && (key in seenKey)) {
+        removed++
+        buf = ""; return
       }
 
-      if (ver != "") {
-        if (!(ver in seen)) { print b; seen[ver] = 1 }
-      } else {
-        print b
-      }
+      if (url != "") seenUrl[url] = 1
+      if (sv != "" && bv != "") seenKey[key] = 1
+      print b
       buf = ""
     }
     /<item>/ { initem = 1; buf = $0; next }
@@ -194,7 +215,9 @@ repair_appcast_structure() {
       if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
       next
     }
-    END { flush_item() }
+    END {
+      # If desired, we could print a summary count here, but the shell script can’t capture it easily.
+    }
   ' "$APPCAST" > "$tmp_items"
 
   # Rebuild appcast with header first, then items
@@ -220,10 +243,10 @@ EOF
 EOF
 
   mv "$tmp_new" "$APPCAST"
-  echo "• Repaired appcast structure (metadata first, URLs normalized, duplicates removed)"
+  echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
 }
 
-# ---- remove any existing item for this version / URL ----
+# ---- remove any existing item for this version / URL (fresh publish) ----
 remove_existing_version_item() {
   local tmp="$TMP_DIR/appcast_wo_version.xml"
   awk -v ver="$SHORT_VERSION" -v zip="$ZIP_URL" '
@@ -231,6 +254,7 @@ remove_existing_version_item() {
     function flush_item() {
       if (buf == "") return
       keep = 1
+      # Drop the item if it matches this short version OR exactly this ZIP url
       if (index(buf, "<sparkle:shortVersionString>" ver "<") > 0) keep = 0
       if (index(buf, zip) > 0) keep = 0
       if (keep) print buf
@@ -270,9 +294,9 @@ insert_item_after_language() {
 
 # ---- run steps ----
 ensure_appcast_exists
-repair_appcast_structure
-remove_existing_version_item
-insert_item_after_language
+repair_appcast_structure         # includes duplicate build removal
+remove_existing_version_item     # remove current version (if present)
+insert_item_after_language       # insert the fresh item
 
 echo "✓ Done"
 echo "Artifacts:"

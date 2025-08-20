@@ -8,7 +8,7 @@ set -euo pipefail
 APP_NAME="Photos Export GPS Fixer"
 REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs"
 SPARKLE_BIN="$HOME/Documents/git-repo-2025/myapps/myapps/Sparkle/bin"
-BASE_URL="https://rphoto.github.io/myapps/"
+BASE_URL="https://rphoto.github.io/myapps"
 MIN_SYSTEM_VERSION="16.0"
 NOTES_TEMPLATE=""
 # ---------------------------------------

@@ -8,7 +8,7 @@ set -euo pipefail
 APP_NAME="Photos Export GPS Fixer"
 REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs"
 SPARKLE_BIN="$HOME/Documents/git-repo-2025/myapps/myapps/Sparkle/bin"
-BASE_URL="https://github.com/rphoto/myapps/"
+BASE_URL="https://rphoto.github.io/myapps/"
 MIN_SYSTEM_VERSION="16.0"
 NOTES_TEMPLATE=""
 # ---------------------------------------
@@ -141,11 +141,19 @@ EOF
   echo "• Created new appcast.xml"
 else
   TMP="${APPCAST}.tmp"
-  awk -v newItem="$NEW_ITEM" '
-    BEGIN { inserted=0 }
-    /<channel>/ && !inserted { print; print ""; print newItem; inserted=1; next }
-    { print }
-  ' "$APPCAST" > "$TMP"
+  # FIXED: Replace AWK with sed to avoid newline parsing issues
+  # Write NEW_ITEM to temporary file first
+  echo "$NEW_ITEM" > "${TMP}.newitem"
+  
+  # Insert after <channel> line and add blank line
+  sed '/^  <channel>/r '"${TMP}.newitem" "$APPCAST" | \
+  sed '/^  <channel>/{
+    a\
+
+  }' > "$TMP"
+  
+  # Clean up temporary file
+  rm -f "${TMP}.newitem"
   mv "$TMP" "$APPCAST"
   echo "• Updated existing appcast.xml"
 fi

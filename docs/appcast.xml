@@ -3,8 +3,22 @@
      xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
      xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
+
+    <item>
+      <title>Version 2.6</title>
+      <sparkle:shortVersionString>2.6</sparkle:shortVersionString>
+      <sparkle:version>1</sparkle:version>
+      <pubDate>Wed, 20 Aug 2025 16:36:48 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps//notes/2.6.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://rphoto.github.io/myapps//releases/PhotosExportGPSFixer-2.6.zip"
+        sparkle:edSignature="NLIMsME4cU1J5TndGp+X04fVz6vQZlSJZRSmYmHfai2ui0XOkU1nJU7iZF1gQCsZXPbB0nJvUrZUEXxxu6WOBw=="
+        length="4270381"
+        type="application/octet-stream"/>
+    </item>
     <title>Photos Export GPS Fixer Updates</title>
-    <link>https://github.com/rphoto/myapps/tree/gh-pages/appcast.xml</link>
+    <link>https://rphoto.github.io/myapps//appcast.xml</link>
     <description>Release notes and downloads</description>
     <language>en</language>
 
@@ -12,13 +26,13 @@
       <title>Version 2.5</title>
       <sparkle:shortVersionString>2.5</sparkle:shortVersionString>
       <sparkle:version>1</sparkle:version>
-      <pubDate>Wed, 20 Aug 2025 05:04:16 +0000</pubDate>
+      <pubDate>Wed, 20 Aug 2025 16:36:43 +0000</pubDate>
       <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/rphoto/myapps/tree/gh-pages/notes/2.5.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps//notes/2.5.html</sparkle:releaseNotesLink>
       <enclosure
-        url="https://github.com/rphoto/myapps/tree/gh-pages/releases/PhotosExportGPSFixer-2.5.zip"
-        sparkle:edSignature="8TBIm+hamyN/O73U10mUM040ZQgcfRhboTheZBWtM88VYSb/W7599TxIpon8YyBNPy3eDV31weqt8yHxOY3pBw=="
-        length="4275590"
+        url="https://rphoto.github.io/myapps//releases/PhotosExportGPSFixer-2.5.zip"
+        sparkle:edSignature="6pjgfq30QVrBye1G+9IgY1F0FN4Rc5i1Td36YUo3sHX+R0XMlrDdl+G7WxEnOgT0+GuESefA2DivDOMa/ChKBQ=="
+        length="4270404"
         type="application/octet-stream"/>
     </item>
 

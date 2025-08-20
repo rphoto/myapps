@@ -6,9 +6,9 @@ set -euo pipefail
 
 # --------- EDIT THESE CONSTANTS ---------
 APP_NAME="Photos Export GPS Fixer"
-REPO_DOCS="/Users/rwright/Documents/git-repo-2025/myapps/myapps/docs"
+REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs"
 SPARKLE_BIN="$HOME/Documents/git-repo-2025/myapps/myapps/Sparkle/bin"
-BASE_URL="https://github.com/rphoto/myapps/tree/gh-pages"
+BASE_URL="https://github.com/rphoto/myapps/"
 MIN_SYSTEM_VERSION="16.0"
 NOTES_TEMPLATE=""
 # ---------------------------------------

@@ -8,17 +8,17 @@
       <title>Version 2.6</title>
       <sparkle:shortVersionString>2.6</sparkle:shortVersionString>
       <sparkle:version>1</sparkle:version>
-      <pubDate>Wed, 20 Aug 2025 16:20:52 +0000</pubDate>
+      <pubDate>Wed, 20 Aug 2025 16:36:48 +0000</pubDate>
       <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/rphoto/myapps/notes/2.6.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps//notes/2.6.html</sparkle:releaseNotesLink>
       <enclosure
-        url="https://github.com/rphoto/myapps/releases/PhotosExportGPSFixer-2.6.zip"
-        sparkle:edSignature="ze7Ap3DZ3z+xkwcGeri5D93fi92VcKmotz50qlPtloEBoFS7rUTVg15Nx1vpJNGBirztb61w4XUOoHwjOmQHBQ=="
+        url="https://rphoto.github.io/myapps//releases/PhotosExportGPSFixer-2.6.zip"
+        sparkle:edSignature="NLIMsME4cU1J5TndGp+X04fVz6vQZlSJZRSmYmHfai2ui0XOkU1nJU7iZF1gQCsZXPbB0nJvUrZUEXxxu6WOBw=="
         length="4270381"
         type="application/octet-stream"/>
     </item>
     <title>Photos Export GPS Fixer Updates</title>
-    <link>https://github.com/rphoto/myapps/appcast.xml</link>
+    <link>https://rphoto.github.io/myapps//appcast.xml</link>
     <description>Release notes and downloads</description>
     <language>en</language>
 
@@ -26,12 +26,12 @@
       <title>Version 2.5</title>
       <sparkle:shortVersionString>2.5</sparkle:shortVersionString>
       <sparkle:version>1</sparkle:version>
-      <pubDate>Wed, 20 Aug 2025 16:20:49 +0000</pubDate>
+      <pubDate>Wed, 20 Aug 2025 16:36:43 +0000</pubDate>
       <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://github.com/rphoto/myapps/notes/2.5.html</sparkle:releaseNotesLink>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps//notes/2.5.html</sparkle:releaseNotesLink>
       <enclosure
-        url="https://github.com/rphoto/myapps/releases/PhotosExportGPSFixer-2.5.zip"
-        sparkle:edSignature="nSEP9jIJsOhyYC+C2MmO+S6J2hU6wL0YztWb8ek9BLFEt8eZqPX7C/XrgnOUU899ELMBphXgMeXf/h8p3o4iDA=="
+        url="https://rphoto.github.io/myapps//releases/PhotosExportGPSFixer-2.5.zip"
+        sparkle:edSignature="6pjgfq30QVrBye1G+9IgY1F0FN4Rc5i1Td36YUo3sHX+R0XMlrDdl+G7WxEnOgT0+GuESefA2DivDOMa/ChKBQ=="
         length="4270404"
         type="application/octet-stream"/>
     </item>

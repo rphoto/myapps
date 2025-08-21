@@ -20,18 +20,44 @@ BASE_URL="${BASE_URL%/}"
 # ---- add Sparkle binaries to PATH ----
 export PATH="$SPARKLE_BIN:$PATH"
 
+
 # ---- argument checks ----
 if [ $# -ne 1 ]; then
   echo "Usage: $0 /path/to/ExportedApp.app" >&2
   exit 1
 fi
+
 APP_PATH="$1"
-if [ ! -d "$APP_PATH" ] || [ "${APP_PATH##*.}" != "app" ]; then
-  echo "Error: argument must be a .app bundle" >&2
+
+# More specific error checking
+if [ ! -e "$APP_PATH" ]; then
+  echo "Error: File does not exist: $APP_PATH" >&2
+  echo "Hint: Check the filename and path. Use quotes around paths with spaces." >&2
+  # Show similar files if any exist in the same directory
+  DIR_PATH=$(dirname "$APP_PATH")
+  BASENAME=$(basename "$APP_PATH" .app)
+  if [ -d "$DIR_PATH" ]; then
+    echo "Similar .app files in $(dirname "$APP_PATH"):" >&2
+    find "$DIR_PATH" -maxdepth 1 -name "*.app" -type d 2>/dev/null | head -5 >&2 || true
+  fi
   exit 1
 fi
-if [ ! -f "$SPARKLE_BIN/sign_update" ]; then
-  echo "Error: sign_update not found at $SPARKLE_BIN/sign_update" >&2
+
+if [ ! -d "$APP_PATH" ]; then
+  echo "Error: Path exists but is not a directory: $APP_PATH" >&2
+  echo "Hint: .app bundles should be directories, not regular files." >&2
+  exit 1
+fi
+
+if [ "${APP_PATH##*.}" != "app" ]; then
+  echo "Error: Path does not end with .app extension: $APP_PATH" >&2
+  echo "Hint: Provide a path to a .app bundle." >&2
+  exit 1
+fi
+
+if [ ! -r "$APP_PATH" ]; then
+  echo "Error: Cannot read .app bundle: $APP_PATH" >&2
+  echo "Hint: Check file permissions." >&2
   exit 1
 fi
 

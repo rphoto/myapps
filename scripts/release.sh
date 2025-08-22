@@ -8,7 +8,7 @@ set -euo pipefail
 # --------- EDIT THESE CONSTANTS ---------
 APP_NAME="Photos Export GPS Fixer"
 REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs"
-SPARKLE_BIN="$HOME/Documents/git-repo-2025/myapps/myapps/Sparkle/bin"
+SPARKLE_BIN="$HOME/Developer/Sparkle/bin"
 BASE_URL="https://rphoto.github.io/myapps"
 MIN_SYSTEM_VERSION="16.0"
 NOTES_TEMPLATE=""
@@ -19,7 +19,6 @@ BASE_URL="${BASE_URL%/}"
 
 # ---- add Sparkle binaries to PATH ----
 export PATH="$SPARKLE_BIN:$PATH"
-
 
 # ---- argument checks ----
 if [ $# -ne 1 ]; then
@@ -58,6 +57,30 @@ fi
 if [ ! -r "$APP_PATH" ]; then
   echo "Error: Cannot read .app bundle: $APP_PATH" >&2
   echo "Hint: Check file permissions." >&2
+  exit 1
+fi
+
+# ---- Sparkle binary checks ----
+if [ ! -d "$SPARKLE_BIN" ]; then
+  echo "Error: Sparkle bin directory does not exist: $SPARKLE_BIN" >&2
+  echo "Hint: Make sure Sparkle is installed and SPARKLE_BIN path is correct." >&2
+  exit 1
+fi
+
+if [ ! -f "$SPARKLE_BIN/sign_update" ]; then
+  echo "Error: sign_update binary not found at: $SPARKLE_BIN/sign_update" >&2
+  echo "Hint: Make sure Sparkle is properly installed with all binaries." >&2
+  
+  if [ -d "$SPARKLE_BIN" ]; then
+    echo "Available files in $SPARKLE_BIN:" >&2
+    ls -la "$SPARKLE_BIN" 2>/dev/null >&2 || echo "  (cannot list directory)" >&2
+  fi
+  exit 1
+fi
+
+if [ ! -x "$SPARKLE_BIN/sign_update" ]; then
+  echo "Error: sign_update binary exists but is not executable: $SPARKLE_BIN/sign_update" >&2
+  echo "Hint: Fix permissions with: chmod +x '$SPARKLE_BIN/sign_update'" >&2
   exit 1
 fi
 
@@ -186,10 +209,9 @@ repair_appcast_structure() {
   local good="${BASE_URL}/"
 
   awk -v bad="$bad" -v good="$good" '
-    BEGIN { initem = 0; buf = ""; removed = 0 }
+    BEGIN { initem = 0; buf = "" }
     function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
     function extract_tag(body, tag,   pos, val, open, after, endpos) {
-      # Extracts the text content of first <tag>...</> occurrence using index()/substr()
       open = "<" tag ">"
       pos = index(body, open)
       if (pos == 0) return ""
@@ -200,7 +222,6 @@ repair_appcast_structure() {
       return trim(val)
     }
     function extract_attr(body, attr,   pos, after, q1, val) {
-      # Extracts attribute value like attr="..."
       pos = index(body, attr "=\"")
       if (pos == 0) return ""
       after = substr(body, pos + length(attr) + 2)
@@ -218,15 +239,12 @@ repair_appcast_structure() {
       bv = extract_tag(b, "sparkle:version")
       url = extract_attr(b, "url")
 
-      # Prefer newest: keep FIRST seen instance of the key (assuming feed is newest→oldest)
       key = sv "|" bv
 
       if (url != "" && (url in seenUrl)) {
-        removed++
         buf = ""; return
       }
       if (sv != "" && bv != "" && (key in seenKey)) {
-        removed++
         buf = ""; return
       }
 
@@ -240,9 +258,6 @@ repair_appcast_structure() {
       buf = buf ORS $0
       if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
       next
-    }
-    END {
-      # If desired, we could print a summary count here, but the shell script can’t capture it easily.
     }
   ' "$APPCAST" > "$tmp_items"
 
@@ -271,6 +286,7 @@ EOF
   mv "$tmp_new" "$APPCAST"
   echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
 }
+
 
 # ---- remove any existing item for this version / URL (fresh publish) ----
 remove_existing_version_item() {

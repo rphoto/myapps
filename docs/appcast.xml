@@ -8,6 +8,20 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 2.6.8</title>
+      <sparkle:shortVersionString>2.6.8</sparkle:shortVersionString>
+      <sparkle:version>20608</sparkle:version>
+      <pubDate>Mon, 25 Aug 2025 04:12:34 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/notes/2.6.8.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://rphoto.github.io/myapps/releases/PhotosExportGPSFixer-2.6.8.zip"
+        sparkle:edSignature="MkydEAhQLcP7CS0tyLg6lPbnsLIH9Es+bnywTz5kqs0HVOhOFKeRYIApzSCzyOIysFHm9ERP+WevnGMBzaJKAQ=="
+        length="4316882"
+        type="application/octet-stream"/>
+    </item>
+
+    <item>
       <title>Version 2.6.7</title>
       <sparkle:shortVersionString>2.6.7</sparkle:shortVersionString>
       <sparkle:version>20607</sparkle:version>
@@ -20,7 +34,6 @@
         length="4305409"
         type="application/octet-stream"/>
     </item>
-
     <item>
       <title>Version 2.6.6</title>
       <sparkle:shortVersionString>2.6.6</sparkle:shortVersionString>

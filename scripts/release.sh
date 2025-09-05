@@ -3,6 +3,12 @@
 # release.sh — Sparkle appcast tool (macOS-safe, self-healing, dedupe builds)
 # Compatible with /bin/bash 3.2.57 on macOS 18+
 # ---------------------------------------------
+
+# If not running under bash, re-exec with bash (prevents weird parse errors)
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec /usr/bin/env bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 # --------- EDIT THESE CONSTANTS ---------
@@ -32,7 +38,6 @@ APP_PATH="$1"
 if [ ! -e "$APP_PATH" ]; then
   echo "Error: File does not exist: $APP_PATH" >&2
   echo "Hint: Check the filename and path. Use quotes around paths with spaces." >&2
-  # Show similar files if any exist in the same directory
   DIR_PATH=$(dirname "$APP_PATH")
   BASENAME=$(basename "$APP_PATH" .app)
   if [ -d "$DIR_PATH" ]; then
@@ -70,7 +75,6 @@ fi
 if [ ! -f "$SPARKLE_BIN/sign_update" ]; then
   echo "Error: sign_update binary not found at: $SPARKLE_BIN/sign_update" >&2
   echo "Hint: Make sure Sparkle is properly installed with all binaries." >&2
-  
   if [ -d "$SPARKLE_BIN" ]; then
     echo "Available files in $SPARKLE_BIN:" >&2
     ls -la "$SPARKLE_BIN" 2>/dev/null >&2 || echo "  (cannot list directory)" >&2
@@ -130,8 +134,15 @@ fi
 echo "• Signature: $SIG"
 echo "• Length: $LEN"
 
-# ---- release notes ----
+# ---- Create a temp dir early so we can safely write files into it ----
+TMP_DIR=$(mktemp -d -t release_sh_tmp.XXXXXX)
+cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
+trap cleanup EXIT
+
+# ---- release notes (cumulative, grouped by version, newest→oldest; idempotent) ----
 NOTES_FILE="$NOTES_DIR/$SHORT_VERSION.html"
+
+# 1) Create or template the base note for the *current* version
 if [ -n "$NOTES_TEMPLATE" ] && [ -f "$NOTES_TEMPLATE" ]; then
   sed -e "s/{{VERSION}}/$SHORT_VERSION/g" \
       -e "s/{{BUILD}}/$BUILD_VERSION/g"  \
@@ -147,32 +158,152 @@ cat > "$NOTES_FILE" <<EOF
 EOF
 fi
 
+# Helper: extract single-line <li>…</li> from a file (current version list)
+extract_lis() {
+  grep -oE '<li[^>]*>.*</li>' "$1" 2>/dev/null || true
+}
+
+# Helper: extract only the "What's new" list items from an older file
+# This ensures idempotency (we don't re-harvest already aggregated history).
+extract_whatsnew_lis() {
+  local file="$1"
+  awk '
+    BEGIN{inblock=0}
+    # Match h2 tags containing What and new with optional apostrophe
+    /<h2[^>]*>.*What.?s[[:space:]]+new.*<\/h2>/ {inblock=1; next}
+    inblock {
+      print
+      if ($0 ~ /<\/ul>/) exit
+    }
+  ' "$file" | grep -oE '<li[^>]*>.*</li>' || true
+}
+
+# Helper: convert version string to sortable format
+version_to_sortable() {
+  local ver="$1"
+  # Convert "2.9.3" to "00002.00009.00003" for proper sorting
+  echo "$ver" | awk -F. '{
+    for(i=1; i<=NF; i++) {
+      if(i>1) printf "."
+      printf "%05d", $i
+    }
+    # Pad with zeros if fewer than 3 parts
+    for(i=NF+1; i<=3; i++) {
+      printf ".00000"
+    }
+    printf "\n"
+  }'
+}
+
+# 2) Gather current version items
+CURRENT_LIS="$(extract_lis "$NOTES_FILE")"
+
+# 3) Gather previous versions' items (sorted newest → oldest by version number)
+PREV_GROUPED_HTML=""
+if ls -1 "$NOTES_DIR"/*.html >/dev/null 2>&1; then
+  tmp_versions="$TMP_DIR/versions.txt"
+  tmp_grouped="$TMP_DIR/prev_grouped.html"
+  : > "$tmp_grouped"
+  : > "$tmp_versions"
+
+  # Get all version files except current one
+  for notes_file in "$NOTES_DIR"/*.html; do
+    [ ! -f "$notes_file" ] && continue
+    ver=$(basename "$notes_file" .html)
+    [ "$ver" = "$SHORT_VERSION" ] && continue
+    
+    # Create sortable version and store with original
+    sortable=$(version_to_sortable "$ver")
+    echo "$sortable $ver" >> "$tmp_versions"
+  done
+
+  # Sort by version (newest first) and process - avoid subshell by using temp file
+  if [ -s "$tmp_versions" ]; then
+    tmp_sorted="$TMP_DIR/sorted_versions.txt"
+    sort -r "$tmp_versions" > "$tmp_sorted"
+    
+    while IFS=' ' read -r sortable_ver ver || [ -n "$ver" ]; do
+      [ -z "$ver" ] && continue
+      f="$NOTES_DIR/$ver.html"
+      [ ! -f "$f" ] && continue
+      
+      lis="$(extract_whatsnew_lis "$f")"
+      
+      # If no "What's new" section found, try to extract all <li> items
+      if [ -z "$lis" ]; then
+        lis="$(extract_lis "$f")"
+      fi
+      
+      [ -z "$lis" ] && continue
+      
+      {
+        printf '  <li><strong>v%s</strong>\n' "$ver"
+        printf '    <ul>\n'
+        printf '%s\n' "$lis"
+        printf '    </ul>\n'
+        printf '  </li>\n'
+      } >> "$tmp_grouped"
+    done < "$tmp_sorted"
+
+    if [ -s "$tmp_grouped" ]; then
+      PREV_GROUPED_HTML="$(cat "$tmp_grouped")"
+    fi
+  fi
+fi
+
+# 4) Rebuild current notes to include the grouped, cumulative history
+COMBINED_NOTES="$TMP_DIR/notes_${SHORT_VERSION}.html"
+
+{
+  printf '%s\n' '<!doctype html><meta charset="utf-8">'
+  printf '<title>%s %s</title>\n' "$APP_NAME" "$SHORT_VERSION"
+  printf '<h1>%s %s</h1>\n' "$APP_NAME" "$SHORT_VERSION"
+
+  # Current version section (What's new)
+  printf '%s\n' '<h2>What'"'"'s new</h2>'
+  printf '%s\n' '<ul>'
+  if [ -n "$CURRENT_LIS" ]; then
+    printf '%s\n' "$CURRENT_LIS"
+  else
+    printf '%s\n' '  <li>Improvements and bug fixes.</li>'
+  fi
+  printf '%s\n' '</ul>'
+
+  # Previous versions section, grouped by version (only if we found any)
+  if [ -n "$PREV_GROUPED_HTML" ]; then
+    printf '%s\n' '<h2>Previous versions</h2>'
+    printf '%s\n' '<ul class="versions">'
+    printf '%s\n' "$PREV_GROUPED_HTML"
+    printf '%s\n' '</ul>'
+  fi
+} > "$COMBINED_NOTES"
+
+mv "$COMBINED_NOTES" "$NOTES_FILE"
+
 # ---- URLs ----
 ZIP_URL="$BASE_URL/releases/$ZIP_NAME"
 NOTES_URL="$BASE_URL/notes/$SHORT_VERSION.html"
 APPCAST_URL="$BASE_URL/appcast.xml"
 
-# ---- new appcast item ----
+# ---- new appcast item (write to file to avoid $(...) pitfalls) ----
 PUBDATE=$(LC_ALL=C date -u +"%a, %d %b %Y %H:%M:%S %z")
-NEW_ITEM=$(printf '%s\n' \
-"    <item>" \
-"      <title>Version $SHORT_VERSION</title>" \
-"      <sparkle:shortVersionString>$SHORT_VERSION</sparkle:shortVersionString>" \
-"      <sparkle:version>$BUILD_VERSION</sparkle:version>" \
-"      <pubDate>$PUBDATE</pubDate>" \
-"      <sparkle:minimumSystemVersion>$MIN_SYSTEM_VERSION</sparkle:minimumSystemVersion>" \
-"      <sparkle:releaseNotesLink>$NOTES_URL</sparkle:releaseNotesLink>" \
-"      <enclosure" \
-"        url=\"$ZIP_URL\"" \
-"        sparkle:edSignature=\"$SIG\"" \
-"        length=\"$LEN\"" \
-"        type=\"application/octet-stream\"/>" \
-"    </item>")
 
-# ---- temp area ----
-TMP_DIR=$(mktemp -d -t release_sh_tmp.XXXXXX)
-cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
-trap cleanup EXIT
+NEW_ITEM_FILE="$TMP_DIR/new_item.xml"
+cat > "$NEW_ITEM_FILE" <<EOF
+    <item>
+      <title>Version $SHORT_VERSION</title>
+      <sparkle:shortVersionString>$SHORT_VERSION</sparkle:shortVersionString>
+      <sparkle:version>$BUILD_VERSION</sparkle:version>
+      <pubDate>$PUBDATE</pubDate>
+      <sparkle:minimumSystemVersion>$MIN_SYSTEM_VERSION</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>$NOTES_URL</sparkle:releaseNotesLink>
+      <enclosure
+        url="$ZIP_URL"
+        sparkle:edSignature="$SIG"
+        length="$LEN"
+        type="application/octet-stream"/>
+    </item>
+EOF
 
 # ---- ensure appcast exists ----
 ensure_appcast_exists() {
@@ -287,7 +418,6 @@ EOF
   echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
 }
 
-
 # ---- remove any existing item for this version / URL (fresh publish) ----
 remove_existing_version_item() {
   local tmp="$TMP_DIR/appcast_wo_version.xml"
@@ -316,11 +446,8 @@ remove_existing_version_item() {
 
 # ---- insert new item after <language> ----
 insert_item_after_language() {
-  local newitem_file="$TMP_DIR/new_item.xml"
-  printf '%s\n' "$NEW_ITEM" > "$newitem_file"
-
   local tmp="$TMP_DIR/appcast_updated.xml"
-  awk -v file="$newitem_file" '
+  awk -v file="$NEW_ITEM_FILE" '
     BEGIN { inserted = 0 }
     {
       print
@@ -340,7 +467,7 @@ repair_appcast_structure         # includes duplicate build removal
 remove_existing_version_item     # remove current version (if present)
 insert_item_after_language       # insert the fresh item
 
-echo "✓ Done"
+echo "✅ Done"
 echo "Artifacts:"
 echo "  $ZIP_PATH"
 echo "  $NOTES_FILE"

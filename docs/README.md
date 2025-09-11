@@ -1,4 +1,3 @@
-
 # Photos Export GPS Fixer Application
 
 Applications included in this repository are freely available under the enclosed license.

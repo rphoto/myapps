@@ -12,11 +12,11 @@ fi
 set -euo pipefail
 
 # --------- EDIT THESE CONSTANTS ---------
-APP_NAME="Photos Export GPS Fixer"
-REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs"
+APP_NAME="MacOutdated"
+REPO_DOCS="$HOME/Documents/git-repo-2025/myapps/myapps/docs/macoutdated"
 SPARKLE_BIN="$HOME/Developer/Sparkle/bin"
-BASE_URL="https://rphoto.github.io/myapps"
-MIN_SYSTEM_VERSION="16.0"
+BASE_URL="https://rphoto.github.io/myapps/macoutdated"
+MIN_SYSTEM_VERSION="15.6"
 NOTES_TEMPLATE=""
 # ---------------------------------------
 
@@ -91,7 +91,7 @@ fi
 # ---- directories ----
 RELEASES_DIR="$REPO_DOCS/releases"
 NOTES_DIR="$REPO_DOCS/notes"
-APPCAST="$REPO_DOCS/appcast.xml"
+APPCAST="$REPO_DOCS/appcast-macoutdated.xml"
 mkdir -p "$RELEASES_DIR" "$NOTES_DIR"
 
 INFO_PLIST="$APP_PATH/Contents/Info.plist"

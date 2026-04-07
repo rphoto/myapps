@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0"
-     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
-     xmlns:dc="http://purl.org/dc/elements/1.1/">
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>MacOutdated Updates</title>
     <link>https://rphoto.github.io/myapps/macoutdated/appcast.xml</link>
     <description>Release notes and downloads</description>
     <language>en</language>
+    <item>
+      <title>Version 1.11</title>
+      <sparkle:shortVersionString>1.11</sparkle:shortVersionString>
+      <sparkle:version>11</sparkle:version>
+      <pubDate>Tue, 07 Apr 2026 15:13:18 +0000</pubDate>
+      <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/1.11.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-1.11.zip"
+        sparkle:edSignature="W1jf8rHPDLpesvPOiIXun5kSMYO+8VVRqNHUl7FCMvnp6GTqYo5hC2h2a6ZRt0KUmah3OBN47Ls28H89DR8JCQ=="
+        length="1598206"
+        type="application/octet-stream" />
+    </item>
     <item>
       <title>Version 1.10</title>
       <sparkle:shortVersionString>1.10</sparkle:shortVersionString>
@@ -20,7 +30,6 @@
         length="1530974"
         type="application/octet-stream"/>
     </item>
-
     <item>
       <title>Version 1.9</title>
       <sparkle:shortVersionString>1.9</sparkle:shortVersionString>
@@ -99,6 +108,5 @@
         length="1424116"
         type="application/octet-stream"/>
     </item>
-
   </channel>
 </rss>

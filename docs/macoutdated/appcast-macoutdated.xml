@@ -2,9 +2,21 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>MacOutdated Updates</title>
-    <link>https://rphoto.github.io/myapps/macoutdated/appcast.xml</link>
+    <link>https://rphoto.github.io/myapps/macoutdated/appcast-macoutdated.xml</link>
     <description>Release notes and downloads</description>
     <language>en</language>
+    <item>
+      <title>Version 1.40</title>
+      <sparkle:shortVersionString>1.40</sparkle:shortVersionString>
+      <sparkle:version>40</sparkle:version>
+      <pubDate>Tue, 14 Apr 2026 00:23:11 +0000</pubDate>
+      <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/1.40.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-1.40.zip"
+        sparkle:edSignature="X7NpGx/SLgcz1eP+R1u3NRR13P7BJ1UD1t66TfiIw7tvUNnWJ0z4npPMCF6q7yKCgkDB/5tTjeGmdrlX0S/sBg=="
+        length="5415359"
+        type="application/octet-stream" />
+    </item>
     <item>
       <title>Version 1.38</title>
       <sparkle:shortVersionString>1.38</sparkle:shortVersionString>

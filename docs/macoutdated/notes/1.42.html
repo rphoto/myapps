@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title> MacOutdated 1.42</title></head><body>
+<h1> MacOutdated 1.42</h1>
+<h2>What's new</h2>
+<ul>
+<li>add help to explain security items</li>
+<li>improve help viewer overall</li>
+</ul>
+<h2>Previous versions</h2>
+<ul>
+    <li><strong>v1.41</strong>
+      <ul>
+<li>add some basic security checks per app and make visible in UI</li>
+      </ul>
+    </li>
+    <li><strong>v1.40</strong>
+      <ul>
+<li>fix handling of App Store apps when they are delisted</li>
+<li>Use ATS transport for security</li>
+      </ul>
+    </li>
+    <li><strong>v1.38</strong>
+      <ul>
+<li>new icon</li>
+      </ul>
+    </li>
+    <li><strong>v1.37</strong>
+      <ul>
+<li>merge diagnostic report functionality into main window</li>
+<li>lots of cleanup inside and out</li>
+      </ul>
+    </li>
+    <li><strong>v1.36</strong>
+      <ul>
+<li>fix presentation of app store delisted apps</li>
+      </ul>
+    </li>
+    <li><strong>v1.35</strong>
+      <ul>
+<li>another fix for microsoft apps</li>
+<li>standardize on app groupings across reports</li>
+      </ul>
+    </li>
+    <li><strong>v1.34</strong>
+      <ul>
+<li>improve reports. fix microsoft app version checks</li>
+      </ul>
+    </li>
+    <li><strong>v1.33</strong>
+      <ul>
+<li>Changed Adobe app discovery</li>
+      </ul>
+    </li>
+    <li><strong>v1.32</strong>
+      <ul>
+<li>add support for older style Sparkle updates</li>
+<li>fix case where apps have a series of versions (5.x, 6.x, 7.x) and handle that correctly</li>
+      </ul>
+    </li>
+    <li><strong>v1.31</strong>
+      <ul>
+<li>Fixed Sparkle version detection</li>
+<li>more right click debug menus</li>
+      </ul>
+    </li>
+    <li><strong>v1.30</strong>
+      <ul>
+<li>wow, version 1.30 already. I'm feeling old</li>
+<li>further improve helper app detection</li>
+<li>internal cleanup of debugging code</li>
+<li>fix presentation of Microsoft apps due to version ahead of expected</li>
+      </ul>
+    </li>
+    <li><strong>v1.29</strong>
+      <ul>
+<li>add search to main page and report page. display up to date apps on main page as well</li>
+<li>Simplfy/consolidate view</li>
+<li>chatgpt version checks fixed. That will improve other apps as well when multiple matches are found in brew cask</li>
+<li>ignore some helper apps as they are updated when main app gets updated</li>
+      </ul>
+    </li>
+    <li><strong>v1.28</strong>
+      <ul>
+<li>now every app has a link to app details </li>
+      </ul>
+    </li>
+    <li><strong>v1.27</strong>
+      <ul>
+<li>improve wording around app missing from updates tab</li>
+      </ul>
+    </li>
+    <li><strong>v1.26</strong>
+      <ul>
+<li>Now we detect which apps are in the update tab of the App Store</li>
+<li>If there is an update but not in updates tab, we open the app itself just in case there is an update.</li>
+      </ul>
+    </li>
+    <li><strong>v1.25</strong>
+      <ul>
+<li>add help/onboarding page</li>
+      </ul>
+    </li>
+    <li><strong>v1.24</strong>
+      <ul>
+<li>change naming of MAS to App Store to make more clear in UI</li>
+<li>make clickable links obvious in UI</li>
+<li>Main view and report view no longer out of sync</li>
+<li>add ability to cancel scan</li>
+      </ul>
+    </li>
+    <li><strong>v1.23</strong>
+      <ul>
+<li>Major bug fixed. When fetching app information from appstore, we prevent caching so we get more up to date version information. Add check vs appstore page for each app as well.</li>
+      </ul>
+    </li>
+    <li><strong>v1.22</strong>
+      <ul>
+<li>changed update watcher to watch for both mac and IOS apps so "updated" shows up when you update the app</li>
+      </ul>
+    </li>
+    <li><strong>v1.21</strong>
+      <ul>
+<li>add progress bar for scan. indicate when appstore is rejecting update request</li>
+      </ul>
+    </li>
+    <li><strong>v1.20</strong>
+      <ul>
+<li> change audit to select only apps we want to audit. Potentially fix menu crash bug</li>
+      </ul>
+    </li>
+    <li><strong>v1.19</strong>
+      <ul>
+<li>Big code refactor. Added progress to app store audit</li>
+      </ul>
+    </li>
+    <li><strong>v1.18</strong>
+      <ul>
+<li>Remove caching from URL requests to make sure we get latest App info. Some small UI report tweaks again. More info in App Details page.</li>
+      </ul>
+    </li>
+    <li><strong>v1.17</strong>
+      <ul>
+<li>ability to view 'up to date' app information in the diagnostic report. Lots of small visual changes to reports</li>
+      </ul>
+    </li>
+    <li><strong>v1.16</strong>
+      <ul>
+<li>For "up to date" apps, add ability to see details of why that might be in diagnostic report. Add new log analysis for App Store apps to figure out why they aren't available</li>
+      </ul>
+    </li>
+    <li><strong>v1.15</strong>
+      <ul>
+<li>add submenus in main view. add internal JSON viewer</li>
+      </ul>
+    </li>
+    <li><strong>v1.14</strong>
+      <ul>
+<li>fix quicken and other version issues</li>
+      </ul>
+    </li>
+    <li><strong>v1.12</strong>
+      <ul>
+<li>version check fixes. added sort option. diag report fixes improvements</li>
+      </ul>
+    </li>
+    <li><strong>v1.11</strong>
+      <ul>
+<li>added support for Adobe Creative Cloud</li>
+      </ul>
+    </li>
+    <li><strong>v1.10</strong>
+      <ul>
+<li>MK fix 2. Skip bundle directories so we do not add helper apps,etc.</li>
+      </ul>
+    </li>
+    <li><strong>v1.9</strong>
+      <ul>
+<li>Support nested folders in /Applications.</li>
+<li>Add rich text output for user report for email/textedit.</li>
+      </ul>
+    </li>
+    <li><strong>v1.8</strong>
+      <ul>
+<li>Now require full disk access. App wont work correctly without it. Reads version information from all apps.</li>
+<li>Many UI changes, especially to diagnostic report</li>
+<li>Some fixes to version checking</li>
+      </ul>
+    </li>
+    <li><strong>v1.7</strong>
+      <ul>
+<li>Fix update check at startup.</li>
+      </ul>
+    </li>
+    <li><strong>v1.6</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+    <li><strong>v1.4</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+    <li><strong>v1.3</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+</ul>
+</body></html>

@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 2.24</title>
+      <sparkle:shortVersionString>2.24</sparkle:shortVersionString>
+      <sparkle:version>224</sparkle:version>
+      <pubDate>Sat, 25 Apr 2026 16:09:13 +0000</pubDate>
+      <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/2.24.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-2.24.zip"
+        sparkle:edSignature="rz9PL90lNhtjv7FRupzdGFqqm6hAXwK/4bt9/K6gIA0dYgL65H34W0rbeQ+74g4d2e4Es//31xT6qw5wt3OOAw=="
+        length="7585542"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 2.23</title>
       <sparkle:shortVersionString>2.23</sparkle:shortVersionString>
       <sparkle:version>223</sparkle:version>

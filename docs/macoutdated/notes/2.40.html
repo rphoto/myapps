@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title> MacOutdated 2.40</title></head><body>
+<h1> MacOutdated 2.40</h1>
+<h2>What's new</h2>
+<ul>
+<li>added Apple Intelligence summary for log entries. Just for fun</li>
+</ul>
+<h2>Previous versions</h2>
+<ul>
+    <li><strong>v2.39</strong>
+      <ul>
+<li>Add Apple Intelligence for log summaries</li>
+      </ul>
+    </li>
+    <li><strong>v2.38</strong>
+      <ul>
+<li>fix log entry and status to reflect actual count of rows deleted for TCC grant delete</li>
+      </ul>
+    </li>
+    <li><strong>v2.37</strong>
+      <ul>
+<li>fix grant deletes</li>
+      </ul>
+    </li>
+    <li><strong>v2.36</strong>
+      <ul>
+<li>when lack of Internet prevents backup, retry when Internet comes back</li>
+<li>lots of changes around backups. </li>
+      </ul>
+    </li>
+    <li><strong>v2.35</strong>
+      <ul>
+<li>fixed issues with deleting TCC grants</li>
+      </ul>
+    </li>
+    <li><strong>v2.34</strong>
+      <ul>
+<li>big security page revamp cosmetically</li>
+      </ul>
+    </li>
+    <li><strong>v2.32</strong>
+      <ul>
+<li>finally fix deletion of orphaned grants (except full disk access which is not possible)</li>
+      </ul>
+    </li>
+    <li><strong>v2.31</strong>
+      <ul>
+<li>more brew restore fixes</li>
+      </ul>
+    </li>
+    <li><strong>v2.30</strong>
+      <ul>
+<li>more brew cleanup. dependancy handling</li>
+<li>brew uninstall improvements</li>
+      </ul>
+    </li>
+    <li><strong>v2.29</strong>
+      <ul>
+<li>getting restore to work. worked on mac and Linux</li>
+      </ul>
+    </li>
+    <li><strong>v2.28</strong>
+      <ul>
+<li>fix display of restore script in backups page</li>
+      </ul>
+    </li>
+    <li><strong>v2.27</strong>
+      <ul>
+<li>large changes to backup homebrew pyenv functionality. not backward comptible.</li>
+      </ul>
+    </li>
+    <li><strong>v2.26</strong>
+      <ul>
+<li>Never delete App icloud records so we have history of deletions</li>
+      </ul>
+    </li>
+    <li><strong>v2.25</strong>
+      <ul>
+<li>fix important sync bug from last version</li>
+      </ul>
+    </li>
+    <li><strong>v2.24</strong>
+      <ul>
+<li>now saving app versions in iCloud so we can detect changes when app not running</li>
+      </ul>
+    </li>
+    <li><strong>v2.23</strong>
+      <ul>
+<li>remove special adobe CC section, integrate into reset of page</li>
+<li>improve apps page display/layout</li>
+      </ul>
+    </li>
+    <li><strong>v2.22</strong>
+      <ul>
+<li>gave up on TCC resets. now just display orphaned TCC entries</li>
+      </ul>
+    </li>
+    <li><strong>v2.21</strong>
+      <ul>
+<li>TCC orphaned grants removal fixed, perhaps</li>
+      </ul>
+    </li>
+    <li><strong>v2.20</strong>
+      <ul>
+<li>more homebrew changes. superset option for homebrew </li>
+      </ul>
+    </li>
+    <li><strong>v2.19</strong>
+      <ul>
+<li>big addition of config backup to iCloud/CloudKit which only matters if you have homebrew installed</li>
+      </ul>
+    </li>
+    <li><strong>v2.18</strong>
+      <ul>
+<li>cosmetic changes to log and security scan pages</li>
+      </ul>
+    </li>
+    <li><strong>v2.17</strong>
+      <ul>
+<li>improvements around logging. now I cover some unlikly but possible failure cases</li>
+      </ul>
+    </li>
+    <li><strong>v2.16</strong>
+      <ul>
+<li>logging now in Apple iCloud</li>
+      </ul>
+    </li>
+    <li><strong>v2.15</strong>
+      <ul>
+<li>improve logging</li>
+      </ul>
+    </li>
+    <li><strong>v2.14</strong>
+      <ul>
+<li>New activity log</li>
+<li>ecurityScanView: "Orphaned Grants" toolbar button to delete grants</li>
+<li>fix cleanup candidates search. clean up security scan page display- removed redundant information.</li>
+      </ul>
+    </li>
+    <li><strong>v2.12</strong>
+      <ul>
+<li>significant progress on Homebrew page. Also auto-hide if no homebrew installed</li>
+<li>Apps view should behave better visually. No row height clipping </li>
+<li>More granular status indications when scanning files (apps and security scans)</li>
+      </ul>
+    </li>
+    <li><strong>v2.11</strong>
+      <ul>
+<li>moved security related stuff all to the security scan page (away from Apps page)</li>
+<li>pretty large refactor internally</li>
+      </ul>
+    </li>
+    <li><strong>v2.10</strong>
+      <ul>
+<li>add support for Adobe app version checking</li>
+<li>lots more cosmetic changes to be consistent</li>
+      </ul>
+    </li>
+    <li><strong>v2.09</strong>
+      <ul>
+<li>add brew security assessment to homebrew page</li>
+      </ul>
+    </li>
+    <li><strong>v2.08</strong>
+      <ul>
+<li>add search to brew and cleanup pages</li>
+<li>lots of cosmetic UI changes to unify look across pages</li>
+      </ul>
+    </li>
+    <li><strong>v2.07</strong>
+      <ul>
+<li>TCC Permission Audit and OSV.dev CVE Check</li>
+<li>Four new checks: IP disabled, Gatekeeper disabled, FileVault off, Application Firewall</li>
+<li>Check SSH Authorized Keys (ssh AuthorizedKey Section())</li>
+<li>Security check for emond and insecure sparkle updates</li>
+      </ul>
+    </li>
+    <li><strong>v2.06</strong>
+      <ul>
+<li>fix brew permissions</li>
+<li>improved background item mapping to parent. still more work to do</li>
+      </ul>
+    </li>
+    <li><strong>v2.05</strong>
+      <ul>
+<li>Big changes for Homebrew page. Exports, setup, click on package for more info, etc</li>
+      </ul>
+    </li>
+    <li><strong>v2.04</strong>
+      <ul>
+<li>add security check help. show in UI what has been checked to confirm security check is actually checking something.</li>
+      </ul>
+    </li>
+    <li><strong>v2.03</strong>
+      <ul>
+<li>add brew support</li>
+      </ul>
+    </li>
+    <li><strong>v2.02</strong>
+      <ul>
+<li>add security scan. very basic</li>
+      </ul>
+    </li>
+    <li><strong>v2.01</strong>
+      <ul>
+<li>better mapping for helper app</li>
+<li>fix right click behavior (for last time)</li>
+      </ul>
+    </li>
+    <li><strong>v2.0</strong>
+      <ul>
+<li>Add "Safest to Delete" mode</li>
+<li>collapsible sections</li>
+<li>age buckets (Recent/Aged/Stale)</li>
+<li>smarter bundle ID family matching</li>
+<li>Google Search context menu</li>
+<li>exclude items modified in last 7 days</li>
+      </ul>
+    </li>
+    <li><strong>v1.54</strong>
+      <ul>
+<li>update help pages</li>
+      </ul>
+    </li>
+    <li><strong>v1.53</strong>
+      <ul>
+<li>add right click to cleanup candidates items</li>
+<li>greatly improve the grouping/association for background items</li>
+      </ul>
+    </li>
+    <li><strong>v1.52</strong>
+      <ul>
+<li>minor UI fixes</li>
+      </ul>
+    </li>
+    <li><strong>v1.51</strong>
+      <ul>
+<li>small UI fix for search and refresh so command-r and command-f work</li>
+      </ul>
+    </li>
+    <li><strong>v1.50</strong>
+      <ul>
+<li>Big 50 release! Major cleanup</li>
+<li>removed app store audit as functionality already in main Apps view</li>
+<li>Moved away from separate windows for functionalty. Now we have a sidebar</li>
+      </ul>
+    </li>
+    <li><strong>v1.49</strong>
+      <ul>
+<li>Added start of cleanup feature.</li>
+<li>fix background items page so it is smarter about what "Old" is. Now looks at both plist and app that is pointed to inside plist</li>
+<li>add right click to view plist data in background items</li>
+      </ul>
+    </li>
+    <li><strong>v1.48</strong>
+      <ul>
+<li>add shadow binary check</li>
+<li>fixed MK reported typo</li>
+      </ul>
+    </li>
+    <li><strong>v1.47</strong>
+      <ul>
+<li>improve security checks, especially for Apple branded apps</li>
+<li>add google search for background items. see right click</li>
+<li>add security help for background items UI</li>
+<li>fix default column sizes so view looks better</li>
+<li>handle rare Sparkle update failure</li>
+      </ul>
+    </li>
+    <li><strong>v1.46</strong>
+      <ul>
+<li>improve sparkle update source warning</li>
+<li>many reporting changes to get more uniform look</li>
+<li>add copy/export buttons to all views to be consistent</li>
+<li>Big app details rewrite</li>
+<li>Much better JSON syntax coloring</li>
+      </ul>
+    </li>
+    <li><strong>v1.45</strong>
+      <ul>
+<li>fix background page search and add more security focused features</li>
+      </ul>
+    </li>
+    <li><strong>v1.44</strong>
+      <ul>
+<li>add export and copy to background items page</li>
+      </ul>
+    </li>
+    <li><strong>v1.43</strong>
+      <ul>
+<li>security audit search now ignores library validation exceptions</li>
+<li>add display of background items login items etc</li>
+      </ul>
+    </li>
+    <li><strong>v1.42</strong>
+      <ul>
+<li>add help to explain security items</li>
+<li>improve help viewer overall</li>
+      </ul>
+    </li>
+    <li><strong>v1.41</strong>
+      <ul>
+<li>add some basic security checks per app and make visible in UI</li>
+      </ul>
+    </li>
+    <li><strong>v1.40</strong>
+      <ul>
+<li>fix handling of App Store apps when they are delisted</li>
+<li>Use ATS transport for security</li>
+      </ul>
+    </li>
+    <li><strong>v1.38</strong>
+      <ul>
+<li>new icon</li>
+      </ul>
+    </li>
+    <li><strong>v1.37</strong>
+      <ul>
+<li>merge diagnostic report functionality into main window</li>
+<li>lots of cleanup inside and out</li>
+      </ul>
+    </li>
+    <li><strong>v1.36</strong>
+      <ul>
+<li>fix presentation of app store delisted apps</li>
+      </ul>
+    </li>
+    <li><strong>v1.35</strong>
+      <ul>
+<li>another fix for microsoft apps</li>
+<li>standardize on app groupings across reports</li>
+      </ul>
+    </li>
+    <li><strong>v1.34</strong>
+      <ul>
+<li>improve reports. fix microsoft app version checks</li>
+      </ul>
+    </li>
+    <li><strong>v1.33</strong>
+      <ul>
+<li>Changed Adobe app discovery</li>
+      </ul>
+    </li>
+    <li><strong>v1.32</strong>
+      <ul>
+<li>add support for older style Sparkle updates</li>
+<li>fix case where apps have a series of versions (5.x, 6.x, 7.x) and handle that correctly</li>
+      </ul>
+    </li>
+    <li><strong>v1.31</strong>
+      <ul>
+<li>Fixed Sparkle version detection</li>
+<li>more right click debug menus</li>
+      </ul>
+    </li>
+    <li><strong>v1.30</strong>
+      <ul>
+<li>wow, version 1.30 already. I'm feeling old</li>
+<li>further improve helper app detection</li>
+<li>internal cleanup of debugging code</li>
+<li>fix presentation of Microsoft apps due to version ahead of expected</li>
+      </ul>
+    </li>
+    <li><strong>v1.29</strong>
+      <ul>
+<li>add search to main page and report page. display up to date apps on main page as well</li>
+<li>Simplfy/consolidate view</li>
+<li>chatgpt version checks fixed. That will improve other apps as well when multiple matches are found in brew cask</li>
+<li>ignore some helper apps as they are updated when main app gets updated</li>
+      </ul>
+    </li>
+    <li><strong>v1.28</strong>
+      <ul>
+<li>now every app has a link to app details </li>
+      </ul>
+    </li>
+    <li><strong>v1.27</strong>
+      <ul>
+<li>improve wording around app missing from updates tab</li>
+      </ul>
+    </li>
+    <li><strong>v1.26</strong>
+      <ul>
+<li>Now we detect which apps are in the update tab of the App Store</li>
+<li>If there is an update but not in updates tab, we open the app itself just in case there is an update.</li>
+      </ul>
+    </li>
+    <li><strong>v1.25</strong>
+      <ul>
+<li>add help/onboarding page</li>
+      </ul>
+    </li>
+    <li><strong>v1.24</strong>
+      <ul>
+<li>change naming of MAS to App Store to make more clear in UI</li>
+<li>make clickable links obvious in UI</li>
+<li>Main view and report view no longer out of sync</li>
+<li>add ability to cancel scan</li>
+      </ul>
+    </li>
+    <li><strong>v1.23</strong>
+      <ul>
+<li>Major bug fixed. When fetching app information from appstore, we prevent caching so we get more up to date version information. Add check vs appstore page for each app as well.</li>
+      </ul>
+    </li>
+    <li><strong>v1.22</strong>
+      <ul>
+<li>changed update watcher to watch for both mac and IOS apps so "updated" shows up when you update the app</li>
+      </ul>
+    </li>
+    <li><strong>v1.21</strong>
+      <ul>
+<li>add progress bar for scan. indicate when appstore is rejecting update request</li>
+      </ul>
+    </li>
+    <li><strong>v1.20</strong>
+      <ul>
+<li> change audit to select only apps we want to audit. Potentially fix menu crash bug</li>
+      </ul>
+    </li>
+    <li><strong>v1.19</strong>
+      <ul>
+<li>Big code refactor. Added progress to app store audit</li>
+      </ul>
+    </li>
+    <li><strong>v1.18</strong>
+      <ul>
+<li>Remove caching from URL requests to make sure we get latest App info. Some small UI report tweaks again. More info in App Details page.</li>
+      </ul>
+    </li>
+    <li><strong>v1.17</strong>
+      <ul>
+<li>ability to view 'up to date' app information in the diagnostic report. Lots of small visual changes to reports</li>
+      </ul>
+    </li>
+    <li><strong>v1.16</strong>
+      <ul>
+<li>For "up to date" apps, add ability to see details of why that might be in diagnostic report. Add new log analysis for App Store apps to figure out why they aren't available</li>
+      </ul>
+    </li>
+    <li><strong>v1.15</strong>
+      <ul>
+<li>add submenus in main view. add internal JSON viewer</li>
+      </ul>
+    </li>
+    <li><strong>v1.14</strong>
+      <ul>
+<li>fix quicken and other version issues</li>
+      </ul>
+    </li>
+    <li><strong>v1.12</strong>
+      <ul>
+<li>version check fixes. added sort option. diag report fixes improvements</li>
+      </ul>
+    </li>
+    <li><strong>v1.11</strong>
+      <ul>
+<li>added support for Adobe Creative Cloud</li>
+      </ul>
+    </li>
+    <li><strong>v1.10</strong>
+      <ul>
+<li>MK fix 2. Skip bundle directories so we do not add helper apps,etc.</li>
+      </ul>
+    </li>
+    <li><strong>v1.9</strong>
+      <ul>
+<li>Support nested folders in /Applications.</li>
+<li>Add rich text output for user report for email/textedit.</li>
+      </ul>
+    </li>
+    <li><strong>v1.8</strong>
+      <ul>
+<li>Now require full disk access. App wont work correctly without it. Reads version information from all apps.</li>
+<li>Many UI changes, especially to diagnostic report</li>
+<li>Some fixes to version checking</li>
+      </ul>
+    </li>
+    <li><strong>v1.7</strong>
+      <ul>
+<li>Fix update check at startup.</li>
+      </ul>
+    </li>
+    <li><strong>v1.6</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+    <li><strong>v1.4</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+    <li><strong>v1.3</strong>
+      <ul>
+<li>Improvements and bug fixes.</li>
+      </ul>
+    </li>
+</ul>
+</body></html>

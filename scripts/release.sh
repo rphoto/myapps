@@ -4,11 +4,13 @@
 # Compatible with /bin/bash 3.2.x on macOS
 #
 # Usage:
-#   scripts/release-unified.sh <app-key> /path/to/ExportedApp.app
+#   scripts/release.sh [--dry-run] <app-key> /path/to/ExportedApp.app
+#   scripts/release.sh [--dry-run] --prune-only <app-key>
 #
 # Examples:
-#   scripts/release-unified.sh macoutdated ~/Downloads/MacOutdated-1.38.app
-#   scripts/release-unified.sh photos-export-gps-fixer ~/Downloads/Photos\ Export\ GPS\ Fixer-2.1.app
+#   scripts/release.sh macoutdated ~/Downloads/MacOutdated-1.38.app
+#   scripts/release.sh photos-export-gps-fixer ~/Downloads/Photos\ Export\ GPS\ Fixer-2.1.app
+#   scripts/release.sh --prune-only macoutdated
 #
 # To add a new app later, add one more register_app line in the APP CONFIG section
 # and put its docs under docs/<app-key>/ unless it is a legacy root-docs app.
@@ -21,10 +23,15 @@ fi
 set -euo pipefail
 
 DRY_RUN=false
+PRUNE_ONLY=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run)
       DRY_RUN=true
+      shift
+      ;;
+    --prune-only)
+      PRUNE_ONLY=true
       shift
       ;;
     --help|-h)
@@ -35,6 +42,9 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+# Max appcast entries plus matching zips/notes kept on disk after each release.
+APPCAST_KEEP=3
 
 run_cmd() {
   if $DRY_RUN; then
@@ -79,6 +89,7 @@ usage() {
   cat >&2 <<USAGE
 Usage:
   $0 [--dry-run] <app-key> /path/to/ExportedApp.app
+  $0 [--dry-run] --prune-only <app-key>
 
 Known app keys:
 $(list_app_keys | sed 's/^/  - /')
@@ -119,12 +130,454 @@ load_app_config() {
   NOTES_DIR="$REPO_DOCS/notes"
   APPCAST="$REPO_DOCS/$APPCAST_FILE"
   BASE_URL="${BASE_URL%/}"
+  APPCAST_URL="$BASE_URL/$APPCAST_FILE"
+  SAFE_NAME=$(printf '%s' "$APP_NAME" | tr -cd '[:alnum:]._-')
+}
+
+# ---- appcast helpers (used by release and --prune-only) ---------------------
+write_appcast_shell() {
+  local dest="$1"
+  cat > "$dest" <<EOF_APPCAST_SHELL
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>$APP_NAME Updates</title>
+    <link>$APPCAST_URL</link>
+    <description>Release notes and downloads</description>
+    <language>en</language>
+EOF_APPCAST_SHELL
+}
+
+zip_version_from_name() {
+  local name="$1"
+  name="${name%.zip}"
+  if [ "${name#${SAFE_NAME}-}" != "$name" ]; then
+    printf '%s' "${name#${SAFE_NAME}-}"
+    return 0
+  fi
+  printf '%s' "$name"
+}
+
+preview_prune_stats() {
+  local simulate_version="${1:-}"
+  [ ! -f "$APPCAST" ] && return 0
+
+  local stats
+  stats=$(awk -v keep="$APPCAST_KEEP" -v releases_dir="$RELEASES_DIR" -v simulate="$simulate_version" '
+    function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    function extract_tag(body, tag, pos, val, open, after, endpos) {
+      open = "<" tag ">"
+      pos = index(body, open)
+      if (pos == 0) return ""
+      after = substr(body, pos + length(open))
+      endpos = index(after, "<")
+      if (endpos == 0) return ""
+      val = substr(after, 1, endpos - 1)
+      return trim(val)
+    }
+    function extract_attr(body, attr, pos, after, q1, val) {
+      pos = index(body, attr "=\"")
+      if (pos == 0) return ""
+      after = substr(body, pos + length(attr) + 2)
+      q1 = index(after, "\"")
+      if (q1 == 0) return ""
+      val = substr(after, 1, q1 - 1)
+      return val
+    }
+    function zip_exists(url,   fn, path) {
+      fn = url
+      sub(/^.*\//, "", fn)
+      path = releases_dir "/" fn
+      return (system("test -f \"" path "\"") == 0)
+    }
+    function register_item(sv, bv, url) {
+      if (sv == "" || bv == "") return
+      if (!zip_exists(url)) return
+      n++
+      builds[n] = bv + 0
+      versions[n] = sv
+    }
+    BEGIN { initem = 0; buf = ""; n = 0 }
+    /<item>/ { initem = 1; buf = $0; next }
+    initem {
+      buf = buf ORS $0
+      if ($0 ~ /<\/item>/) {
+        sv = extract_tag(buf, "sparkle:shortVersionString")
+        bv = extract_tag(buf, "sparkle:version")
+        url = extract_attr(buf, "url")
+        register_item(sv, bv, url)
+        initem = 0
+        buf = ""
+      }
+      next
+    }
+    END {
+      if (simulate != "") {
+        found = 0
+        for (i = 1; i <= n; i++) {
+          if (versions[i] == simulate) { found = 1; break }
+        }
+        if (!found) {
+          n++
+          builds[n] = 999999999
+          versions[n] = simulate
+        }
+      }
+      total = n
+      delete used
+      kept = 0
+      for (k = 1; k <= keep && k <= n; k++) {
+        best = 0
+        bestbv = -1
+        for (i = 1; i <= n; i++) {
+          if (used[i]) continue
+          if (builds[i] > bestbv) { bestbv = builds[i]; best = i }
+        }
+        if (best == 0) break
+        used[best] = 1
+        kept++
+      }
+      printf "items=%d kept=%d\n", total, kept
+    }
+  ' "$APPCAST")
+
+  local total kept zip_count note_count
+  local f
+  total=$(printf '%s' "$stats" | sed -n 's/.*items=\([0-9]*\).*/\1/p')
+  kept=$(printf '%s' "$stats" | sed -n 's/.*kept=\([0-9]*\).*/\1/p')
+  zip_count=0
+  note_count=0
+  if [ -d "$RELEASES_DIR" ]; then
+    for f in "$RELEASES_DIR"/*.zip; do
+      [ -f "$f" ] && zip_count=$((zip_count + 1))
+    done
+  fi
+  if [ -d "$NOTES_DIR" ]; then
+    for f in "$NOTES_DIR"/*.html; do
+      [ -f "$f" ] && note_count=$((note_count + 1))
+    done
+  fi
+
+  local remove_items=$((total - kept))
+  local remove_zips=$((zip_count - kept))
+  local remove_notes=$((note_count - kept))
+  [ "$remove_items" -lt 0 ] && remove_items=0
+  [ "$remove_zips" -lt 0 ] && remove_zips=0
+  [ "$remove_notes" -lt 0 ] && remove_notes=0
+
+  echo "• Prune (keep $APPCAST_KEEP): $total feed item(s) with zips; would keep $kept"
+  echo "  Would remove ~$remove_items appcast item(s), ~$remove_zips zip(s), ~$remove_notes note(s)"
+}
+
+prune_old_releases() {
+  [ ! -f "$APPCAST" ] && return 0
+
+  local tmp_kept="$TMP_DIR/prune_kept_items.xml"
+  local tmp_new="$TMP_DIR/prune_appcast.xml"
+  local tmp_keep_versions="$TMP_DIR/prune_keep_versions.txt"
+  local total=0
+  local kept_count=0
+
+  : > "$tmp_keep_versions"
+
+  awk -v keep="$APPCAST_KEEP" -v releases_dir="$RELEASES_DIR" -v keep_versions_file="$tmp_keep_versions" '
+    BEGIN { initem = 0; buf = ""; n = 0 }
+    function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    function extract_tag(body, tag, pos, val, open, after, endpos) {
+      open = "<" tag ">"
+      pos = index(body, open)
+      if (pos == 0) return ""
+      after = substr(body, pos + length(open))
+      endpos = index(after, "<")
+      if (endpos == 0) return ""
+      val = substr(after, 1, endpos - 1)
+      return trim(val)
+    }
+    function extract_attr(body, attr, pos, after, q1, val) {
+      pos = index(body, attr "=\"")
+      if (pos == 0) return ""
+      after = substr(body, pos + length(attr) + 2)
+      q1 = index(after, "\"")
+      if (q1 == 0) return ""
+      val = substr(after, 1, q1 - 1)
+      return val
+    }
+    function zip_exists(url,   fn, path) {
+      fn = url
+      sub(/^.*\//, "", fn)
+      path = releases_dir "/" fn
+      return (system("test -f \"" path "\"") == 0)
+    }
+    function flush_item() {
+      if (buf == "") return
+      sv = extract_tag(buf, "sparkle:shortVersionString")
+      bv = extract_tag(buf, "sparkle:version")
+      url = extract_attr(buf, "url")
+      if (sv == "" || bv == "" || !zip_exists(url)) { buf = ""; return }
+      n++
+      items[n] = buf
+      builds[n] = bv + 0
+      versions[n] = sv
+      buf = ""
+    }
+    /<item>/ { initem = 1; buf = $0; next }
+    initem {
+      buf = buf ORS $0
+      if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
+      next
+    }
+    END {
+      total = n
+      delete used
+      kept = 0
+      for (k = 1; k <= keep && k <= n; k++) {
+        best = 0
+        bestbv = -1
+        for (i = 1; i <= n; i++) {
+          if (used[i]) continue
+          if (builds[i] > bestbv) { bestbv = builds[i]; best = i }
+        }
+        if (best == 0) break
+        used[best] = 1
+        print items[best]
+        print versions[best] >> keep_versions_file
+        kept++
+      }
+      print "PRUNE_STATS total=" total " kept=" kept > "/dev/stderr"
+    }
+  ' "$APPCAST" > "$tmp_kept" 2> "$TMP_DIR/prune_stats.txt"
+
+  local stats_line
+  stats_line=$(cat "$TMP_DIR/prune_stats.txt" 2>/dev/null | grep PRUNE_STATS || true)
+  total=$(printf '%s' "$stats_line" | sed -n 's/.*total=\([0-9]*\).*/\1/p')
+  kept_count=$(printf '%s' "$stats_line" | sed -n 's/.*kept=\([0-9]*\).*/\1/p')
+  [ -z "${total:-}" ] && total=0
+  [ -z "${kept_count:-}" ] && kept_count=0
+
+  write_appcast_shell "$tmp_new"
+  if [ -s "$tmp_kept" ]; then
+    cat "$tmp_kept" >> "$tmp_new"
+  fi
+  cat >> "$tmp_new" <<'EOF_PRUNE_END'
+  </channel>
+</rss>
+EOF_PRUNE_END
+  run_cmd mv "$tmp_new" "$APPCAST"
+
+  local -a keep_versions=()
+  if [ -s "$tmp_keep_versions" ]; then
+    while IFS= read -r ver || [ -n "$ver" ]; do
+      [ -z "$ver" ] && continue
+      keep_versions+=("$ver")
+    done < "$tmp_keep_versions"
+  fi
+
+  is_kept_version() {
+    local v="$1"
+    local k
+    for k in "${keep_versions[@]}"; do
+      [ "$k" = "$v" ] && return 0
+    done
+    return 1
+  }
+
+  local removed_zips=0 removed_notes=0
+  local f ver
+
+  if [ -d "$RELEASES_DIR" ]; then
+    for f in "$RELEASES_DIR"/*.zip; do
+      [ -f "$f" ] || continue
+      ver=$(zip_version_from_name "$(basename "$f")")
+      if is_kept_version "$ver"; then
+        continue
+      fi
+      run_cmd rm -f "$f"
+      removed_zips=$((removed_zips + 1))
+    done
+  fi
+
+  if [ -d "$NOTES_DIR" ]; then
+    for f in "$NOTES_DIR"/*.html; do
+      [ -f "$f" ] || continue
+      ver=$(basename "$f" .html)
+      if is_kept_version "$ver"; then
+        continue
+      fi
+      run_cmd rm -f "$f"
+      removed_notes=$((removed_notes + 1))
+    done
+  fi
+
+  local removed_items=$((total - kept_count))
+  [ "$removed_items" -lt 0 ] && removed_items=0
+  echo "• Pruned releases: kept $kept_count of $total appcast item(s); removed $removed_items item(s), $removed_zips zip(s), $removed_notes note(s)"
+}
+
+ensure_appcast_exists() {
+  if [ ! -f "$APPCAST" ]; then
+    write_appcast_shell "$APPCAST"
+    cat >> "$APPCAST" <<'EOF_APPCAST_NEW_END'
+  </channel>
+</rss>
+EOF_APPCAST_NEW_END
+    echo "• Created new $APPCAST_FILE"
+  fi
+}
+
+repair_appcast_structure() {
+  [ ! -f "$APPCAST" ] && return 0
+
+  local tmp_items="$TMP_DIR/items.xml"
+  local tmp_new="$TMP_DIR/new_appcast.xml"
+  local bad="${BASE_URL}//"
+  local good="${BASE_URL}/"
+
+  awk -v bad="$bad" -v good="$good" '
+    BEGIN { initem = 0; buf = "" }
+    function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
+    function extract_tag(body, tag, pos, val, open, after, endpos) {
+      open = "<" tag ">"
+      pos = index(body, open)
+      if (pos == 0) return ""
+      after = substr(body, pos + length(open))
+      endpos = index(after, "<")
+      if (endpos == 0) return ""
+      val = substr(after, 1, endpos - 1)
+      return trim(val)
+    }
+    function extract_attr(body, attr, pos, after, q1, val) {
+      pos = index(body, attr "=\"")
+      if (pos == 0) return ""
+      after = substr(body, pos + length(attr) + 2)
+      q1 = index(after, "\"")
+      if (q1 == 0) return ""
+      val = substr(after, 1, q1 - 1)
+      return val
+    }
+    function flush_item() {
+      if (buf == "") return
+      b = buf
+      gsub(bad, good, b)
+      sv  = extract_tag(b, "sparkle:shortVersionString")
+      bv  = extract_tag(b, "sparkle:version")
+      url = extract_attr(b, "url")
+      key = sv "|" bv
+      if (url != "" && (url in seenUrl)) { buf = ""; return }
+      if (sv != "" && bv != "" && (key in seenKey)) { buf = ""; return }
+      if (url != "") seenUrl[url] = 1
+      if (sv != "" && bv != "") seenKey[key] = 1
+      print b
+      buf = ""
+    }
+    /<item>/ { initem = 1; buf = $0; next }
+    initem {
+      buf = buf ORS $0
+      if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
+      next
+    }
+  ' "$APPCAST" > "$tmp_items"
+
+  write_appcast_shell "$tmp_new"
+  cat "$tmp_items" >> "$tmp_new"
+  cat >> "$tmp_new" <<'EOF_REPAIR_END'
+  </channel>
+</rss>
+EOF_REPAIR_END
+
+  run_cmd mv "$tmp_new" "$APPCAST"
+  echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
+}
+
+remove_existing_version_item() {
+  local tmp="$TMP_DIR/appcast_wo_version.xml"
+  awk -v ver="$SHORT_VERSION" -v zip="$ZIP_URL" '
+    BEGIN { initem = 0; buf = "" }
+    function flush_item() {
+      if (buf == "") return
+      keep = 1
+      if (index(buf, "<sparkle:shortVersionString>" ver "</") > 0) keep = 0
+      if (index(buf, zip) > 0) keep = 0
+      if (keep) print buf
+      buf = ""
+    }
+    /<item>/ { initem = 1; buf = $0; next }
+    initem {
+      buf = buf ORS $0
+      if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
+      next
+    }
+    { if (!initem) print }
+    END { flush_item() }
+  ' "$APPCAST" > "$tmp"
+  run_cmd mv "$tmp" "$APPCAST"
+}
+
+insert_item_after_language() {
+  local tmp="$TMP_DIR/appcast_updated.xml"
+  awk -v file="$NEW_ITEM_FILE" '
+    BEGIN { inserted = 0 }
+    {
+      print
+      if (!inserted && index($0, "<language>") > 0) {
+        while ((getline line < file) > 0) print line
+        close(file)
+        inserted = 1
+      }
+    }
+  ' "$APPCAST" > "$tmp"
+  run_cmd mv "$tmp" "$APPCAST"
+}
+
+stage_release_git() {
+  local commit_msg="$1"
+  local git_root
+  git_root=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null) || {
+    echo "⚠️  Warning: $REPO_ROOT is not inside a git repository — skipping git commit." >&2
+    return 0
+  }
+  echo ""
+  echo "• Staging files for git commit…"
+  run_cmd git -C "$git_root" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+  run_cmd git -C "$git_root" commit -m "$commit_msg"
+  echo "✅ Git committed: $commit_msg"
+}
+
+run_prune_pipeline() {
+  ensure_appcast_exists
+  repair_appcast_structure
+  prune_old_releases
 }
 
 # ---- argument checks --------------------------------------------------------
 if $DRY_RUN; then
   echo "⚠️  DRY RUN MODE — no changes will be made"
   echo ""
+fi
+
+if $PRUNE_ONLY; then
+  if [ $# -ne 1 ]; then
+    usage
+  fi
+  APP_KEY="$1"
+  load_app_config "$APP_KEY"
+
+  if $DRY_RUN; then
+    echo "• Would prune $APP_NAME release history (keep $APPCAST_KEEP)"
+    echo "  Appcast: $APPCAST"
+    preview_prune_stats
+    echo ""
+    echo "✅ Dry run complete"
+    exit 0
+  fi
+
+  TMP_DIR=$(mktemp -d -t release_prune_tmp.XXXXXX)
+  cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
+  trap cleanup EXIT
+
+  run_cmd mkdir -p "$RELEASES_DIR" "$NOTES_DIR"
+  run_prune_pipeline
+  stage_release_git "Prune $APP_NAME releases (keep $APPCAST_KEEP)"
+  exit 0
 fi
 
 if [ $# -ne 2 ]; then
@@ -232,7 +685,6 @@ echo "  ✓ $APP_NAME $SHORT_VERSION — $_item_count item(s) recorded."
 echo ""
 
 # ---- filenames & paths ------------------------------------------------------
-SAFE_NAME=$(printf '%s' "$APP_NAME" | tr -cd '[:alnum:]._-')
 ZIP_NAME="${SAFE_NAME}-${SHORT_VERSION}.zip"
 ZIP_PATH="$RELEASES_DIR/$ZIP_NAME"
 NOTES_FILE="$NOTES_DIR/$SHORT_VERSION.html"
@@ -289,10 +741,13 @@ if $DRY_RUN; then
   echo "  $APPCAST"
 
   echo ""
+  preview_prune_stats "$SHORT_VERSION"
+
+  echo ""
   echo "• Would stage files for git commit…"
   GIT_ROOT=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null || true)
   if [ -n "${GIT_ROOT:-}" ]; then
-    run_cmd git -C "$GIT_ROOT" add "$ZIP_PATH" "$NOTES_FILE" "$APPCAST"
+    run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
     run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
   else
     echo "⚠️  Warning: $REPO_ROOT is not inside a git repository — would skip git commit."
@@ -447,141 +902,11 @@ cat > "$NEW_ITEM_FILE" <<EOF_ITEM
     </item>
 EOF_ITEM
 
-ensure_appcast_exists() {
-  if [ ! -f "$APPCAST" ]; then
-    cat > "$APPCAST" <<EOF_APPCAST
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <channel>
-    <title>$APP_NAME Updates</title>
-    <link>$APPCAST_URL</link>
-    <description>Release notes and downloads</description>
-    <language>en</language>
-  </channel>
-</rss>
-EOF_APPCAST
-    echo "• Created new $APPCAST_FILE"
-  fi
-}
-
-repair_appcast_structure() {
-  [ ! -f "$APPCAST" ] && return 0
-
-  local tmp_items="$TMP_DIR/items.xml"
-  local tmp_new="$TMP_DIR/new_appcast.xml"
-  local bad="${BASE_URL}//"
-  local good="${BASE_URL}/"
-
-  awk -v bad="$bad" -v good="$good" '
-    BEGIN { initem = 0; buf = "" }
-    function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
-    function extract_tag(body, tag, pos, val, open, after, endpos) {
-      open = "<" tag ">"
-      pos = index(body, open)
-      if (pos == 0) return ""
-      after = substr(body, pos + length(open))
-      endpos = index(after, "<")
-      if (endpos == 0) return ""
-      val = substr(after, 1, endpos - 1)
-      return trim(val)
-    }
-    function extract_attr(body, attr, pos, after, q1, val) {
-      pos = index(body, attr "=\"")
-      if (pos == 0) return ""
-      after = substr(body, pos + length(attr) + 2)
-      q1 = index(after, "\"")
-      if (q1 == 0) return ""
-      val = substr(after, 1, q1 - 1)
-      return val
-    }
-    function flush_item() {
-      if (buf == "") return
-      b = buf
-      gsub(bad, good, b)
-      sv  = extract_tag(b, "sparkle:shortVersionString")
-      bv  = extract_tag(b, "sparkle:version")
-      url = extract_attr(b, "url")
-      key = sv "|" bv
-      if (url != "" && (url in seenUrl)) { buf = ""; return }
-      if (sv != "" && bv != "" && (key in seenKey)) { buf = ""; return }
-      if (url != "") seenUrl[url] = 1
-      if (sv != "" && bv != "") seenKey[key] = 1
-      print b
-      buf = ""
-    }
-    /<item>/ { initem = 1; buf = $0; next }
-    initem {
-      buf = buf ORS $0
-      if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
-      next
-    }
-  ' "$APPCAST" > "$tmp_items"
-
-  cat > "$tmp_new" <<EOF_NEW
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <channel>
-    <title>$APP_NAME Updates</title>
-    <link>$APPCAST_URL</link>
-    <description>Release notes and downloads</description>
-    <language>en</language>
-EOF_NEW
-
-  cat "$tmp_items" >> "$tmp_new"
-
-  cat >> "$tmp_new" <<'EOF_NEW_END'
-  </channel>
-</rss>
-EOF_NEW_END
-
-  run_cmd mv "$tmp_new" "$APPCAST"
-  echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
-}
-
-remove_existing_version_item() {
-  local tmp="$TMP_DIR/appcast_wo_version.xml"
-  awk -v ver="$SHORT_VERSION" -v zip="$ZIP_URL" '
-    BEGIN { initem = 0; buf = "" }
-    function flush_item() {
-      if (buf == "") return
-      keep = 1
-      if (index(buf, "<sparkle:shortVersionString>" ver "</") > 0) keep = 0
-      if (index(buf, zip) > 0) keep = 0
-      if (keep) print buf
-      buf = ""
-    }
-    /<item>/ { initem = 1; buf = $0; next }
-    initem {
-      buf = buf ORS $0
-      if ($0 ~ /<\/item>/) { flush_item(); initem = 0 }
-      next
-    }
-    { if (!initem) print }
-    END { flush_item() }
-  ' "$APPCAST" > "$tmp"
-  run_cmd mv "$tmp" "$APPCAST"
-}
-
-insert_item_after_language() {
-  local tmp="$TMP_DIR/appcast_updated.xml"
-  awk -v file="$NEW_ITEM_FILE" '
-    BEGIN { inserted = 0 }
-    {
-      print
-      if (!inserted && index($0, "<language>") > 0) {
-        while ((getline line < file) > 0) print line
-        close(file)
-        inserted = 1
-      }
-    }
-  ' "$APPCAST" > "$tmp"
-  run_cmd mv "$tmp" "$APPCAST"
-}
-
 ensure_appcast_exists
 repair_appcast_structure
 remove_existing_version_item
 insert_item_after_language
+prune_old_releases
 
 echo "✅ Done"
 echo "Artifacts:"
@@ -589,15 +914,5 @@ echo "  $ZIP_PATH"
 echo "  $NOTES_FILE"
 echo "  $APPCAST"
 
-echo ""
-echo "• Staging files for git commit…"
-GIT_ROOT=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null) || {
-  echo "⚠️  Warning: $REPO_ROOT is not inside a git repository — skipping git commit." >&2
-  exit 0
-}
-
-run_cmd git -C "$GIT_ROOT" add   "$ZIP_PATH"   "$NOTES_FILE"   "$APPCAST"
-
 COMMIT_MSG="Release $APP_NAME $SHORT_VERSION (build $BUILD_VERSION)"
-run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
-echo "✅ Git committed: $COMMIT_MSG"
+stage_release_git "$COMMIT_MSG"

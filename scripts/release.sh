@@ -1069,7 +1069,6 @@ echo "• Length: $LEN"
 if $DRY_RUN; then
   ZIP_URL="$BASE_URL/releases/$ZIP_NAME"
   NOTES_URL="$BASE_URL/notes/$SHORT_VERSION.html"
-  APPCAST_URL="$BASE_URL/$APPCAST_FILE"
   COMMIT_MSG="Release $APP_NAME $SHORT_VERSION (build $BUILD_VERSION)"
 
   echo ""
@@ -1237,7 +1236,6 @@ run_cmd mv "$COMBINED_NOTES" "$NOTES_FILE"
 # ---- URLs -------------------------------------------------------------------
 ZIP_URL="$BASE_URL/releases/$ZIP_NAME"
 NOTES_URL="$BASE_URL/notes/$SHORT_VERSION.html"
-APPCAST_URL="$BASE_URL/$APPCAST_FILE"
 
 PUBDATE=$(LC_ALL=C date -u +"%a, %d %b %Y %H:%M:%S %z")
 NEW_ITEM_FILE="$TMP_DIR/new_item.xml"

@@ -41,6 +41,7 @@ GIT_PUSH=false
 REWRITE_ZIP_HISTORY=false
 SKIP_CODESIGN_PREFLIGHT=false
 ZIP_HISTORY_REWRITTEN=false
+ZIP_HISTORY_PUSH_LEASE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run)
@@ -652,6 +653,7 @@ maybe_rewrite_zip_history() {
 
   origin_url=$(git -C "$GIT_ROOT" remote get-url origin 2>/dev/null || true)
   origin_fetch=$(git -C "$GIT_ROOT" config --get remote.origin.fetch 2>/dev/null || true)
+  ZIP_HISTORY_PUSH_LEASE=$(git -C "$GIT_ROOT" rev-parse origin/main 2>/dev/null || true)
 
   echo "• Rewriting git history (this may take a minute)…"
   git -C "$GIT_ROOT" filter-repo --force --invert-paths --paths-from-file "$purge_file"
@@ -665,6 +667,7 @@ maybe_rewrite_zip_history() {
     if [ -n "$origin_fetch" ]; then
       git -C "$GIT_ROOT" config remote.origin.fetch "$origin_fetch"
     fi
+    git -C "$GIT_ROOT" fetch origin
   fi
 
   git -C "$GIT_ROOT" reflog expire --expire=now --all
@@ -685,7 +688,13 @@ push_and_verify_release() {
   branch=$(git -C "$GIT_ROOT" rev-parse --abbrev-ref HEAD)
   if [ "$force_push" = true ]; then
     echo "• Force-pushing rewritten history to origin ($branch, --force-with-lease)…"
-    if ! run_cmd git -C "$GIT_ROOT" push --force-with-lease origin HEAD; then
+    if [ -n "${ZIP_HISTORY_PUSH_LEASE:-}" ]; then
+      if ! run_cmd git -C "$GIT_ROOT" push --force-with-lease="main:$ZIP_HISTORY_PUSH_LEASE" origin HEAD; then
+        echo "Error: git push --force-with-lease failed. Rewritten history exists locally at $GIT_ROOT" >&2
+        echo "Recovery: git push --force-with-lease=main:$ZIP_HISTORY_PUSH_LEASE origin $branch" >&2
+        exit 1
+      fi
+    elif ! run_cmd git -C "$GIT_ROOT" push --force-with-lease origin HEAD; then
       echo "Error: git push --force-with-lease failed. Rewritten history exists locally at $GIT_ROOT" >&2
       exit 1
     fi

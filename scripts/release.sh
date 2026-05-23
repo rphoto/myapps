@@ -4,8 +4,20 @@
 # Compatible with /bin/bash 3.2.x on macOS
 #
 # Usage:
-#   scripts/release.sh [--dry-run] <app-key> /path/to/ExportedApp.app
-#   scripts/release.sh [--dry-run] --prune-only <app-key>
+#   scripts/release.sh [--dry-run] [--push] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
+#   scripts/release.sh [--dry-run] [--push] [--rewrite-zip-history] --prune-only <app-key>
+#
+# Preflight (release mode):
+#   - codesign --verify --deep --strict on the exported .app
+#   - Developer ID Application + optional TeamIdentifier check (per-app field 7)
+#   - notarization/stapling warning by default; --require-notarized fails if missing
+#
+# Git:
+#   - Requires a git checkout of this repo before writing artifacts
+#   - On commit failure, prints recovery steps and exits non-zero
+#   - --push runs git push and probes the published appcast URL
+#   - --rewrite-zip-history removes stale release .zip blobs from all git history
+#     (requires git-filter-repo; use with --push for force-with-lease)
 #
 # Examples:
 #   scripts/release.sh macoutdated ~/Downloads/MacOutdated-1.38.app
@@ -24,6 +36,11 @@ set -euo pipefail
 
 DRY_RUN=false
 PRUNE_ONLY=false
+REQUIRE_NOTARIZED=false
+GIT_PUSH=false
+REWRITE_ZIP_HISTORY=false
+SKIP_CODESIGN_PREFLIGHT=false
+ZIP_HISTORY_REWRITTEN=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run)
@@ -32,6 +49,22 @@ while [ $# -gt 0 ]; do
       ;;
     --prune-only)
       PRUNE_ONLY=true
+      shift
+      ;;
+    --require-notarized)
+      REQUIRE_NOTARIZED=true
+      shift
+      ;;
+    --push)
+      GIT_PUSH=true
+      shift
+      ;;
+    --rewrite-zip-history)
+      REWRITE_ZIP_HISTORY=true
+      shift
+      ;;
+    --skip-codesign-preflight)
+      SKIP_CODESIGN_PREFLIGHT=true
       shift
       ;;
     --help|-h)
@@ -65,7 +98,7 @@ NOTES_TEMPLATE=""
 
 # ---- app registry -----------------------------------------------------------
 # Format:
-#   key|display name|docs relative path|base URL|minimum system version|appcast filename
+#   key|display name|docs relative path|base URL|minimum system version|appcast filename|expected TeamIdentifier (optional)
 #
 # docs relative path examples:
 #   macoutdated               -> docs/macoutdated
@@ -79,7 +112,7 @@ register_app() {
 "
 }
 
-register_app "macoutdated|MacOutdated|macoutdated|https://rphoto.github.io/myapps/macoutdated|15.6|appcast-macoutdated.xml"
+register_app "macoutdated|MacOutdated|macoutdated|https://rphoto.github.io/myapps/macoutdated|15.0|appcast-macoutdated.xml|64SX28238Z"
 register_app "photos-export-gps-fixer|Photos Export GPS Fixer|.|https://rphoto.github.io/myapps|16.0|appcast.xml"
 
 # Example future app:
@@ -88,8 +121,15 @@ register_app "photos-export-gps-fixer|Photos Export GPS Fixer|.|https://rphoto.g
 usage() {
   cat >&2 <<USAGE
 Usage:
-  $0 [--dry-run] <app-key> /path/to/ExportedApp.app
-  $0 [--dry-run] --prune-only <app-key>
+  $0 [--dry-run] [--push] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
+  $0 [--dry-run] [--push] [--rewrite-zip-history] --prune-only <app-key>
+
+Options:
+  --require-notarized       Fail if exported .app is not notarized/stapled (default: warn only)
+  --skip-codesign-preflight Skip Developer ID / team checks (not recommended)
+  --push                    After a successful commit, git push and probe the appcast URL
+  --rewrite-zip-history     Purge release .zip files from git history except zips on disk
+                            (requires git-filter-repo; rewrites history — use with --push)
 
 Known app keys:
 $(list_app_keys | sed 's/^/  - /')
@@ -119,6 +159,7 @@ load_app_config() {
   BASE_URL=$(printf '%s' "$line" | awk -F'|' '{print $4}')
   MIN_SYSTEM_VERSION=$(printf '%s' "$line" | awk -F'|' '{print $5}')
   APPCAST_FILE=$(printf '%s' "$line" | awk -F'|' '{print $6}')
+  EXPECTED_SIGNING_TEAM_ID=$(printf '%s' "$line" | awk -F'|' '{print ($7 != "" ? $7 : "")}')
 
   if [ "$DOCS_REL" = "." ]; then
     REPO_DOCS="$DOCS_ROOT"
@@ -432,7 +473,7 @@ repair_appcast_structure() {
   local bad="${BASE_URL}//"
   local good="${BASE_URL}/"
 
-  awk -v bad="$bad" -v good="$good" '
+  awk -v bad="$bad" -v good="$good" -v min_os="$MIN_SYSTEM_VERSION" '
     BEGIN { initem = 0; buf = "" }
     function trim(s){ sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
     function extract_tag(body, tag, pos, val, open, after, endpos) {
@@ -458,6 +499,9 @@ repair_appcast_structure() {
       if (buf == "") return
       b = buf
       gsub(bad, good, b)
+      if (min_os != "") {
+        gsub(/<sparkle:minimumSystemVersion>[^<]*<\/sparkle:minimumSystemVersion>/, "<sparkle:minimumSystemVersion>" min_os "</sparkle:minimumSystemVersion>", b)
+      }
       sv  = extract_tag(b, "sparkle:shortVersionString")
       bv  = extract_tag(b, "sparkle:version")
       url = extract_attr(b, "url")
@@ -528,18 +572,248 @@ insert_item_after_language() {
   run_cmd mv "$tmp" "$APPCAST"
 }
 
+require_git_repo() {
+  GIT_ROOT=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: $REPO_ROOT is not inside a git repository." >&2
+    echo "Run this script from a clone of the myapps repo so releases can be committed." >&2
+    exit 1
+  }
+}
+
+list_kept_release_zip_paths() {
+  local f relpath
+  find "$DOCS_ROOT" -path '*/releases/*.zip' -type f 2>/dev/null | sort | while IFS= read -r f; do
+    relpath="${f#"$GIT_ROOT"/}"
+    printf '%s\n' "$relpath"
+  done
+}
+
+list_historical_release_zip_paths() {
+  git -C "$GIT_ROOT" log --all --pretty=format: --name-only 2>/dev/null \
+    | grep -E '^docs/.*/releases/[^/]+\.zip$' \
+    | sort -u
+}
+
+maybe_rewrite_zip_history() {
+  local local_tmp=false
+  local kept_file hist_file purge_file count
+  local origin_url origin_fetch
+
+  ZIP_HISTORY_REWRITTEN=false
+
+  if [ -z "${TMP_DIR:-}" ]; then
+    TMP_DIR=$(mktemp -d -t release_rewrite_tmp.XXXXXX)
+    local_tmp=true
+  fi
+
+  kept_file="$TMP_DIR/kept_release_zips.txt"
+  hist_file="$TMP_DIR/historical_release_zips.txt"
+  purge_file="$TMP_DIR/purge_release_zips.txt"
+
+  list_kept_release_zip_paths > "$kept_file"
+  list_historical_release_zip_paths > "$hist_file"
+  comm -23 "$hist_file" "$kept_file" > "$purge_file"
+
+  if [ ! -s "$purge_file" ]; then
+    echo "• Zip history cleanup: nothing to remove (history matches on-disk zips)"
+    if $local_tmp; then
+      rm -rf "$TMP_DIR"
+      TMP_DIR=""
+    fi
+    return 0
+  fi
+
+  count=$(wc -l < "$purge_file" | tr -d ' ')
+  echo "• Zip history cleanup: $count release zip path(s) to remove from git history"
+
+  if $DRY_RUN; then
+    sed 's/^/    /' "$purge_file"
+    echo "  Would run: git filter-repo --invert-paths (requires git-filter-repo)"
+    echo "  Would push with: git push --force-with-lease origin HEAD"
+    if $local_tmp; then
+      rm -rf "$TMP_DIR"
+      TMP_DIR=""
+    fi
+    return 0
+  fi
+
+  if ! command -v git-filter-repo >/dev/null 2>&1; then
+    echo "Error: --rewrite-zip-history requires git-filter-repo." >&2
+    echo "Install: brew install git-filter-repo" >&2
+    exit 1
+  fi
+
+  if ! git -C "$GIT_ROOT" diff --quiet || ! git -C "$GIT_ROOT" diff --cached --quiet; then
+    echo "Error: working tree must be clean before --rewrite-zip-history." >&2
+    echo "Commit or stash unrelated changes first:" >&2
+    git -C "$GIT_ROOT" status --short >&2
+    exit 1
+  fi
+
+  origin_url=$(git -C "$GIT_ROOT" remote get-url origin 2>/dev/null || true)
+  origin_fetch=$(git -C "$GIT_ROOT" config --get remote.origin.fetch 2>/dev/null || true)
+
+  echo "• Rewriting git history (this may take a minute)…"
+  git -C "$GIT_ROOT" filter-repo --force --invert-paths --paths-from-file "$purge_file"
+
+  if [ -n "$origin_url" ]; then
+    if git -C "$GIT_ROOT" remote get-url origin >/dev/null 2>&1; then
+      git -C "$GIT_ROOT" remote set-url origin "$origin_url"
+    else
+      git -C "$GIT_ROOT" remote add origin "$origin_url"
+    fi
+    if [ -n "$origin_fetch" ]; then
+      git -C "$GIT_ROOT" config remote.origin.fetch "$origin_fetch"
+    fi
+  fi
+
+  git -C "$GIT_ROOT" reflog expire --expire=now --all
+  git -C "$GIT_ROOT" gc --prune=now
+
+  ZIP_HISTORY_REWRITTEN=true
+  echo "✅ Zip history rewritten ($count path(s) removed from all commits)"
+
+  if $local_tmp; then
+    rm -rf "$TMP_DIR"
+    TMP_DIR=""
+  fi
+}
+
+push_and_verify_release() {
+  local force_push="${1:-false}"
+  local branch
+  branch=$(git -C "$GIT_ROOT" rev-parse --abbrev-ref HEAD)
+  if [ "$force_push" = true ]; then
+    echo "• Force-pushing rewritten history to origin ($branch, --force-with-lease)…"
+    if ! run_cmd git -C "$GIT_ROOT" push --force-with-lease origin HEAD; then
+      echo "Error: git push --force-with-lease failed. Rewritten history exists locally at $GIT_ROOT" >&2
+      exit 1
+    fi
+  else
+    echo "• Pushing to origin ($branch)…"
+    if ! run_cmd git -C "$GIT_ROOT" push origin HEAD; then
+      echo "Error: git push failed. Commit exists locally at $GIT_ROOT" >&2
+      exit 1
+    fi
+  fi
+  echo "• Verifying published appcast (GitHub Pages may take a minute to update)…"
+  if curl -fsS "$APPCAST_URL" >/dev/null; then
+    echo "  Appcast reachable: $APPCAST_URL"
+  else
+    echo "⚠️  Warning: could not fetch $APPCAST_URL yet (Pages deploy may still be in progress)." >&2
+  fi
+}
+
 stage_release_git() {
   local commit_msg="$1"
-  local git_root
-  git_root=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null) || {
-    echo "⚠️  Warning: $REPO_ROOT is not inside a git repository — skipping git commit." >&2
-    return 0
-  }
+  require_git_repo
+
   echo ""
   echo "• Staging files for git commit…"
-  run_cmd git -C "$git_root" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
-  run_cmd git -C "$git_root" commit -m "$commit_msg"
+  run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+
+  if ! $DRY_RUN && git -C "$GIT_ROOT" diff --cached --quiet; then
+    echo "⚠️  No staged changes to commit (artifacts may already match HEAD)." >&2
+    if $REWRITE_ZIP_HISTORY; then
+      maybe_rewrite_zip_history
+    fi
+    if $GIT_PUSH; then
+      push_and_verify_release "$ZIP_HISTORY_REWRITTEN"
+    elif $ZIP_HISTORY_REWRITTEN; then
+      echo "• Next step: git push --force-with-lease origin HEAD (history was rewritten)"
+    fi
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    run_cmd git -C "$GIT_ROOT" commit -m "$commit_msg"
+    echo "✅ Git committed: $commit_msg"
+    if $REWRITE_ZIP_HISTORY; then
+      maybe_rewrite_zip_history
+    fi
+    return 0
+  fi
+
+  if ! git -C "$GIT_ROOT" commit -m "$commit_msg"; then
+    echo "" >&2
+    echo "❌ Git commit failed. Release artifacts were written but not committed." >&2
+    echo "Recovery:" >&2
+    echo "  cd \"$GIT_ROOT\"" >&2
+    echo "  git status" >&2
+    echo "  git add \"$APPCAST\" \"$RELEASES_DIR\" \"$NOTES_DIR\"" >&2
+    printf '  git commit -m %q\n' "$commit_msg" >&2
+    exit 1
+  fi
   echo "✅ Git committed: $commit_msg"
+
+  if $REWRITE_ZIP_HISTORY; then
+    maybe_rewrite_zip_history
+  fi
+
+  if $GIT_PUSH; then
+    push_and_verify_release "$ZIP_HISTORY_REWRITTEN"
+  elif $ZIP_HISTORY_REWRITTEN; then
+    echo "• Next step: git push --force-with-lease origin HEAD (history was rewritten)"
+  else
+    echo "• Next step: git push from $GIT_ROOT (or re-run with --push)"
+  fi
+}
+
+verify_exported_app() {
+  if $SKIP_CODESIGN_PREFLIGHT; then
+    echo "• Skipping codesign preflight (--skip-codesign-preflight)"
+    return 0
+  fi
+
+  echo "• Verifying code signature on exported .app…"
+  if ! codesign --verify --deep --strict "$APP_PATH" 2>/dev/null; then
+    echo "Error: codesign --verify --deep --strict failed for: $APP_PATH" >&2
+    echo "Hint: export a Release build signed with your Developer ID certificate." >&2
+    exit 1
+  fi
+
+  local team authority
+  team=$(codesign -dv --verbose=4 "$APP_PATH" 2>&1 | sed -n 's/^TeamIdentifier=\(.*\)$/\1/p' | head -1)
+  authority=$(codesign -dv --verbose=2 "$APP_PATH" 2>&1 | sed -n 's/^Authority=\(.*\)$/\1/p' | head -1)
+
+  if [ -z "${authority:-}" ] || ! printf '%s' "$authority" | grep -q "Developer ID Application"; then
+    echo "Error: app is not signed with Developer ID Application (Authority: ${authority:-unknown})." >&2
+    exit 1
+  fi
+  echo "  Authority: $authority"
+
+  if [ -n "${EXPECTED_SIGNING_TEAM_ID:-}" ]; then
+    if [ "$team" != "$EXPECTED_SIGNING_TEAM_ID" ]; then
+      echo "Error: unexpected TeamIdentifier '$team' (expected '$EXPECTED_SIGNING_TEAM_ID')." >&2
+      exit 1
+    fi
+    echo "  TeamIdentifier: $team"
+  elif [ -n "${team:-}" ]; then
+    echo "  TeamIdentifier: $team"
+  fi
+
+  verify_notarization_status
+}
+
+verify_notarization_status() {
+  if xcrun stapler validate "$APP_PATH" >/dev/null 2>&1; then
+    echo "  Notarization: stapler validate OK"
+    return 0
+  fi
+
+  if spctl -a -t exec -vv "$APP_PATH" 2>&1 | grep -qi "accepted"; then
+    echo "  Notarization: Gatekeeper accepted (spctl)"
+    return 0
+  fi
+
+  if $REQUIRE_NOTARIZED; then
+    echo "Error: exported .app is not notarized/stapled." >&2
+    echo "Hint: notarize and staple after Archive → Export, then re-run with the stapled .app." >&2
+    exit 1
+  fi
+
+  echo "  ⚠️  Warning: notarization/stapling not detected; some users may see Gatekeeper blocks on first launch." >&2
+  echo "  Hint: notarize in Xcode or with notarytool, staple, then release — or pass --require-notarized to enforce." >&2
 }
 
 run_prune_pipeline() {
@@ -565,10 +839,19 @@ if $PRUNE_ONLY; then
     echo "• Would prune $APP_NAME release history (keep $APPCAST_KEEP)"
     echo "  Appcast: $APPCAST"
     preview_prune_stats
+    if $REWRITE_ZIP_HISTORY; then
+      require_git_repo
+      TMP_DIR=$(mktemp -d -t release_prune_dryrun_tmp.XXXXXX)
+      maybe_rewrite_zip_history
+      rm -rf "$TMP_DIR"
+      TMP_DIR=""
+    fi
     echo ""
     echo "✅ Dry run complete"
     exit 0
   fi
+
+  require_git_repo
 
   TMP_DIR=$(mktemp -d -t release_prune_tmp.XXXXXX)
   cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
@@ -654,6 +937,17 @@ BUILD_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST
 if [ -z "${SHORT_VERSION:-}" ] || [ -z "${BUILD_VERSION:-}" ]; then
   echo "Error: unable to read version info from Info.plist" >&2
   exit 1
+fi
+
+require_git_repo
+
+if $DRY_RUN; then
+  echo "• Would verify code signature and notarization on exported .app"
+  if $REQUIRE_NOTARIZED; then
+    echo "  (--require-notarized: would fail if not notarized/stapled)"
+  fi
+else
+  verify_exported_app
 fi
 
 # ---- release notes collection ----------------------------------------------
@@ -744,13 +1038,23 @@ if $DRY_RUN; then
   preview_prune_stats "$SHORT_VERSION"
 
   echo ""
+  echo "• Would require git repository at: $REPO_ROOT"
   echo "• Would stage files for git commit…"
-  GIT_ROOT=$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null || true)
-  if [ -n "${GIT_ROOT:-}" ]; then
-    run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
-    run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
-  else
-    echo "⚠️  Warning: $REPO_ROOT is not inside a git repository — would skip git commit."
+  run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+  run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
+  if $GIT_PUSH; then
+    if $REWRITE_ZIP_HISTORY; then
+      echo "• Would git push --force-with-lease and verify appcast at: $APPCAST_URL"
+    else
+      echo "• Would git push and verify appcast at: $APPCAST_URL"
+    fi
+  fi
+
+  if $REWRITE_ZIP_HISTORY; then
+    TMP_DIR=$(mktemp -d -t release_dryrun_tmp.XXXXXX)
+    maybe_rewrite_zip_history
+    rm -rf "$TMP_DIR"
+    TMP_DIR=""
   fi
 
   echo ""

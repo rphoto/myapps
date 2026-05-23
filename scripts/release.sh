@@ -591,7 +591,7 @@ list_kept_release_zip_paths() {
 
 list_historical_release_zip_paths() {
   git -C "$GIT_ROOT" log --all --pretty=format: --name-only 2>/dev/null \
-    | grep -E '^docs/.*/releases/[^/]+\.zip$' \
+    | grep -E '^docs/([^/]+/)?releases/[^/]+\.zip$' \
     | sort -u
 }
 

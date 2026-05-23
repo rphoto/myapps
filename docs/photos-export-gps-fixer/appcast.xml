@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Photos Export GPS Fixer Updates</title>
+    <link>https://rphoto.github.io/myapps/appcast.xml</link>
+    <description>Release notes and downloads</description>
+    <language>en</language>
+    <item>
+      <title>Version 2.9.9</title>
+      <sparkle:shortVersionString>2.9.9</sparkle:shortVersionString>
+      <sparkle:version>20909</sparkle:version>
+      <pubDate>Sun, 21 Sep 2025 00:39:46 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/photos-export-gps-fixer/notes/2.9.9.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.9.zip"
+        sparkle:edSignature="G/t5VVICcSejCof3nygR5Xz6WmhGXxII/b3ZIZ6w6ABIbsxxEcMVPJ9wPrtfqTIkreOzV9fSeT9n2MZOwZ5HAQ=="
+        length="9239987"
+        type="application/octet-stream"/>
+    </item>
+    <item>
+      <title>Version 2.9.7</title>
+      <sparkle:shortVersionString>2.9.7</sparkle:shortVersionString>
+      <sparkle:version>20907</sparkle:version>
+      <pubDate>Sun, 14 Sep 2025 23:55:15 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/photos-export-gps-fixer/notes/2.9.7.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.7.zip"
+        sparkle:edSignature="gQSM7RwNLQqj2Tw620q4WWrqbpqisBYzsMXCr9oIb8ZMXMZCT9zddpatwy2wVL1Vwcwm4RbiwQt0ypMhBRopCA=="
+        length="8293684"
+        type="application/octet-stream"/>
+    </item>
+    <item>
+      <title>Version 2.9.4</title>
+      <sparkle:shortVersionString>2.9.4</sparkle:shortVersionString>
+      <sparkle:version>20904</sparkle:version>
+      <pubDate>Wed, 10 Sep 2025 01:12:29 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/photos-export-gps-fixer/notes/2.9.4.html</sparkle:releaseNotesLink>
+      <enclosure
+        url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.4.zip"
+        sparkle:edSignature="xBpRQNkI5MD3tobiPrWqATEzUz5bsu7trnNVBIPsULYe0RvD9JImEmL5bm183B+G2/UpZZtLF4Lcp3KablVaBg=="
+        length="4432174"
+        type="application/octet-stream"/>
+    </item>
+  </channel>
+</rss>

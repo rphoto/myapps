@@ -99,12 +99,15 @@ NOTES_TEMPLATE=""
 
 # ---- app registry -----------------------------------------------------------
 # Format:
-#   key|display name|docs relative path|base URL|minimum system version|appcast filename|expected TeamIdentifier (optional)
+#   key|display name|docs relative path|base URL|minimum system version|appcast filename|expected TeamIdentifier (optional)|public appcast URL (optional)
 #
 # docs relative path examples:
 #   macoutdated               -> docs/macoutdated
+#   photos-export-gps-fixer   -> docs/photos-export-gps-fixer
 #   .                         -> docs/                (legacy root-docs app)
-#   newapp                    -> docs/newapp
+#
+# public appcast URL (field 8): when set, release.sh writes a symlink at
+# docs/<filename> pointing at the canonical appcast and uses this URL in the feed.
 #
 # To add a new app, copy one line and edit the fields.
 APP_CONFIGS=""
@@ -114,7 +117,7 @@ register_app() {
 }
 
 register_app "macoutdated|MacOutdated|macoutdated|https://rphoto.github.io/myapps/macoutdated|15.0|appcast-macoutdated.xml|64SX28238Z"
-register_app "photos-export-gps-fixer|Photos Export GPS Fixer|.|https://rphoto.github.io/myapps|16.0|appcast.xml"
+register_app "photos-export-gps-fixer|Photos Export GPS Fixer|photos-export-gps-fixer|https://rphoto.github.io/myapps/photos-export-gps-fixer|16.0|appcast.xml||https://rphoto.github.io/myapps/appcast.xml"
 
 # Example future app:
 # register_app "newapp|NewApp|newapp|https://rphoto.github.io/myapps/newapp|16.0|appcast.xml"
@@ -161,6 +164,7 @@ load_app_config() {
   MIN_SYSTEM_VERSION=$(printf '%s' "$line" | awk -F'|' '{print $5}')
   APPCAST_FILE=$(printf '%s' "$line" | awk -F'|' '{print $6}')
   EXPECTED_SIGNING_TEAM_ID=$(printf '%s' "$line" | awk -F'|' '{print ($7 != "" ? $7 : "")}')
+  PUBLIC_APPCAST_URL=$(printf '%s' "$line" | awk -F'|' '{print ($8 != "" ? $8 : "")}')
 
   if [ "$DOCS_REL" = "." ]; then
     REPO_DOCS="$DOCS_ROOT"
@@ -172,7 +176,14 @@ load_app_config() {
   NOTES_DIR="$REPO_DOCS/notes"
   APPCAST="$REPO_DOCS/$APPCAST_FILE"
   BASE_URL="${BASE_URL%/}"
+  PUBLIC_APPCAST_URL="${PUBLIC_APPCAST_URL%/}"
   APPCAST_URL="$BASE_URL/$APPCAST_FILE"
+  if [ -n "${PUBLIC_APPCAST_URL:-}" ]; then
+    APPCAST_URL="$PUBLIC_APPCAST_URL"
+    APPCAST_SYMLINK="$DOCS_ROOT/${PUBLIC_APPCAST_URL##*/}"
+  else
+    APPCAST_SYMLINK=""
+  fi
   SAFE_NAME=$(printf '%s' "$APP_NAME" | tr -cd '[:alnum:]._-')
 }
 
@@ -188,6 +199,30 @@ write_appcast_shell() {
     <description>Release notes and downloads</description>
     <language>en</language>
 EOF_APPCAST_SHELL
+}
+
+ensure_appcast_symlink() {
+  [ -n "${APPCAST_SYMLINK:-}" ] || return 0
+
+  local target_rel="${APPCAST#$DOCS_ROOT/}"
+  if [ -L "$APPCAST_SYMLINK" ]; then
+    local current_target
+    current_target=$(readlink "$APPCAST_SYMLINK")
+    if [ "$current_target" = "$target_rel" ]; then
+      return 0
+    fi
+  fi
+
+  run_cmd ln -sf "$target_rel" "$APPCAST_SYMLINK"
+  echo "• Appcast symlink: ${APPCAST_SYMLINK#$REPO_ROOT/} -> $target_rel"
+}
+
+stage_release_paths() {
+  run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+  if [ -n "${APPCAST_SYMLINK:-}" ]; then
+    ensure_appcast_symlink
+    run_cmd git -C "$GIT_ROOT" add "$APPCAST_SYMLINK"
+  fi
 }
 
 zip_version_from_name() {
@@ -405,6 +440,7 @@ prune_old_releases() {
 </rss>
 EOF_PRUNE_END
   run_cmd mv "$tmp_new" "$APPCAST"
+  ensure_appcast_symlink
 
   local -a keep_versions=()
   if [ -s "$tmp_keep_versions" ]; then
@@ -464,6 +500,7 @@ ensure_appcast_exists() {
 EOF_APPCAST_NEW_END
     echo "• Created new $APPCAST_FILE"
   fi
+  ensure_appcast_symlink
 }
 
 repair_appcast_structure() {
@@ -530,6 +567,7 @@ repair_appcast_structure() {
 EOF_REPAIR_END
 
   run_cmd mv "$tmp_new" "$APPCAST"
+  ensure_appcast_symlink
   echo "• Repaired appcast: metadata first, URLs normalized, duplicate builds & files removed"
 }
 
@@ -719,7 +757,7 @@ stage_release_git() {
 
   echo ""
   echo "• Staging files for git commit…"
-  run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+  stage_release_paths
 
   if ! $DRY_RUN && git -C "$GIT_ROOT" diff --cached --quiet; then
     echo "⚠️  No staged changes to commit (artifacts may already match HEAD)." >&2
@@ -750,6 +788,9 @@ stage_release_git() {
     echo "  cd \"$GIT_ROOT\"" >&2
     echo "  git status" >&2
     echo "  git add \"$APPCAST\" \"$RELEASES_DIR\" \"$NOTES_DIR\"" >&2
+    if [ -n "${APPCAST_SYMLINK:-}" ]; then
+      echo "  git add \"$APPCAST_SYMLINK\"" >&2
+    fi
     printf '  git commit -m %q\n' "$commit_msg" >&2
     exit 1
   fi
@@ -1049,7 +1090,7 @@ if $DRY_RUN; then
   echo ""
   echo "• Would require git repository at: $REPO_ROOT"
   echo "• Would stage files for git commit…"
-  run_cmd git -C "$GIT_ROOT" add "$APPCAST" "$RELEASES_DIR" "$NOTES_DIR"
+  stage_release_paths
   run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
   if $GIT_PUSH; then
     if $REWRITE_ZIP_HISTORY; then

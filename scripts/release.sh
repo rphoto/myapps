@@ -93,8 +93,18 @@ run_cmd() {
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 DOCS_ROOT="$REPO_ROOT/docs"
+# Sparkle CLI tools are expected from a pullable git clone at ~/Developer/Sparkle.
+# Keep that clone current with: cd ~/Developer/Sparkle && git pull
+# Rebuild sign_update after pulling; release.sh only requires sign_update in SPARKLE_BIN.
 SPARKLE_BIN_DEFAULT="$HOME/Developer/Sparkle/bin"
 SPARKLE_BIN="${SPARKLE_BIN:-$SPARKLE_BIN_DEFAULT}"
+# Ignore stale SPARKLE_BIN from an old shell session when the path no longer exists.
+if [ ! -d "$SPARKLE_BIN" ] || [ ! -f "$SPARKLE_BIN/sign_update" ]; then
+  if [ -n "${SPARKLE_BIN:-}" ] && [ "$SPARKLE_BIN" != "$SPARKLE_BIN_DEFAULT" ]; then
+    echo "Warning: SPARKLE_BIN is not usable ($SPARKLE_BIN); using $SPARKLE_BIN_DEFAULT" >&2
+  fi
+  SPARKLE_BIN="$SPARKLE_BIN_DEFAULT"
+fi
 NOTES_TEMPLATE=""
 
 # ---- app registry -----------------------------------------------------------

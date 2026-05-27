@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 2.9.10</title>
+      <sparkle:shortVersionString>2.9.10</sparkle:shortVersionString>
+      <sparkle:version>20910</sparkle:version>
+      <pubDate>Wed, 27 May 2026 04:27:33 +0000</pubDate>
+      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/photos-export-gps-fixer/notes/2.9.10.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.10.zip"
+        sparkle:edSignature="V6Q6OEjNyrBedB3vxQWMBdwzF5rmkclVVlLzfEEbdrTHn5gLBMHbVQPmfc6P8GchdOS96dmz6Jwoq1UolaSpDg=="
+        length="8877628"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 2.9.9</title>
       <sparkle:shortVersionString>2.9.9</sparkle:shortVersionString>
       <sparkle:version>20909</sparkle:version>
@@ -29,19 +41,6 @@
         url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.7.zip"
         sparkle:edSignature="gQSM7RwNLQqj2Tw620q4WWrqbpqisBYzsMXCr9oIb8ZMXMZCT9zddpatwy2wVL1Vwcwm4RbiwQt0ypMhBRopCA=="
         length="8293684"
-        type="application/octet-stream"/>
-    </item>
-    <item>
-      <title>Version 2.9.4</title>
-      <sparkle:shortVersionString>2.9.4</sparkle:shortVersionString>
-      <sparkle:version>20904</sparkle:version>
-      <pubDate>Wed, 10 Sep 2025 01:12:29 +0000</pubDate>
-      <sparkle:minimumSystemVersion>16.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/photos-export-gps-fixer/notes/2.9.4.html</sparkle:releaseNotesLink>
-      <enclosure
-        url="https://rphoto.github.io/myapps/photos-export-gps-fixer/releases/PhotosExportGPSFixer-2.9.4.zip"
-        sparkle:edSignature="xBpRQNkI5MD3tobiPrWqATEzUz5bsu7trnNVBIPsULYe0RvD9JImEmL5bm183B+G2/UpZZtLF4Lcp3KablVaBg=="
-        length="4432174"
         type="application/octet-stream"/>
     </item>
   </channel>

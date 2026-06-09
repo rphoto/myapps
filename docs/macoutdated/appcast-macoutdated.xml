@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 2.90</title>
+      <sparkle:shortVersionString>2.90</sparkle:shortVersionString>
+      <sparkle:version>290</sparkle:version>
+      <pubDate>Tue, 09 Jun 2026 01:45:45 +0000</pubDate>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/2.90.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-2.90.zip"
+        sparkle:edSignature="1u0bZbEueQj90x7Co4CndUBOlAu0oxap5VWJSV8KIzEerI7LECdqBPxJ9aAIHuSAlSf30cGPbO6ZYRy3EdmCBA=="
+        length="10696754"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 2.89</title>
       <sparkle:shortVersionString>2.89</sparkle:shortVersionString>
       <sparkle:version>289</sparkle:version>
@@ -27,18 +39,6 @@
       <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-2.88.zip"
         sparkle:edSignature="Ki6CC9DwFQhAf53oqrlIDL87awLEm484Ruj0B+newAg3mVngnfbPfMSsfFIBZrKgJhpZ+msk8ZxtUmoERWT6Aw=="
         length="10671625"
-        type="application/octet-stream" />
-    </item>
-    <item>
-      <title>Version 2.87</title>
-      <sparkle:shortVersionString>2.87</sparkle:shortVersionString>
-      <sparkle:version>287</sparkle:version>
-      <pubDate>Sat, 06 Jun 2026 00:44:25 +0000</pubDate>
-      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/2.87.html</sparkle:releaseNotesLink>
-      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-2.87.zip"
-        sparkle:edSignature="R9KvwJK2mFxtDkvV1QIjZDm9/qtMupmXLBxnLDVqUo+eE+whaNOouehiHaHMba8qvDcXAVDL9Ihka0JvAKvvAQ=="
-        length="10618070"
         type="application/octet-stream" />
     </item>
   </channel>

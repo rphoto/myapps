@@ -69,3 +69,11 @@ Simply drag and drop a folder of images onto Photos Export GPS Fixer. The applic
 - **Non-Destructive to Image files:** Does not change the RAW image files, only the XMP metadata files
 - **Batch Processing:** Process entire folders or single photos via drag and drop
 - **Preview Mode:** Optional dry-run mode enabled by default to preview changes before making any modifications
+
+---
+
+## Releasing apps (Sparkle / GitHub Pages)
+
+This repo also hosts Sparkle appcasts, release zips, and release notes for **MacOutdated** and **Photos Export GPS Fixer**.
+
+See **[`scripts/RELEASE.md`](scripts/RELEASE.md)** for setup (`SPARKLE_BIN`, direnv `.envrc`, optional `~/Developer/Sparkle` clone), the full `release.sh` workflow, and troubleshooting.

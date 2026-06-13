@@ -97,4 +97,4 @@ fastlane/screenshots
 
 # Other
 *.DS_Store
-
+gitconfig.private

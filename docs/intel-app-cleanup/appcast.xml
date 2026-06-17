@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 1.8</title>
+      <sparkle:shortVersionString>1.8</sparkle:shortVersionString>
+      <sparkle:version>18</sparkle:version>
+      <pubDate>Wed, 17 Jun 2026 16:14:33 +0000</pubDate>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/intel-app-cleanup/notes/1.8.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/intel-app-cleanup/releases/IntelComponentManager-1.8.zip"
+        sparkle:edSignature="1VdQ7EDJ84k7KH1OuN3jHxsXiY/4jxjAg9/iR0nAMycLOqnQ7vHdpGixKQwSTbcuXOm+o7XNNZg9nQp3/mCqAw=="
+        length="2801880"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 1.7</title>
       <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
       <sparkle:version>17</sparkle:version>

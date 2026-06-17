@@ -74,6 +74,6 @@ Simply drag and drop a folder of images onto Photos Export GPS Fixer. The applic
 
 ## Releasing apps (Sparkle / GitHub Pages)
 
-This repo also hosts Sparkle appcasts, release zips, and release notes for **MacOutdated** and **Photos Export GPS Fixer**.
+This repo also hosts Sparkle appcasts, release zips, and release notes for **MacOutdated**, **Photos Export GPS Fixer**, and **Intel Component Manager**.
 
 See **[`scripts/RELEASE.md`](scripts/RELEASE.md)** for setup (`SPARKLE_BIN`, direnv `.envrc`, optional `~/Developer/Sparkle` clone), the full `release.sh` workflow, and troubleshooting.

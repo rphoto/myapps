@@ -25,6 +25,7 @@ It does **not** push to GitHub unless you pass `--push`. You can also commit and
 |---------|--------------|-----------|--------------|
 | `macoutdated` | MacOutdated | `docs/macoutdated/` | `appcast-macoutdated.xml` |
 | `photos-export-gps-fixer` | Photos Export GPS Fixer | `docs/photos-export-gps-fixer/` | `appcast.xml` |
+| `intel-app-cleanup` | Intel Component Manager | `docs/intel-app-cleanup/` | `appcast.xml` |
 
 Add a new app by copying a `register_app` line in `release.sh` (see the APP CONFIG section).
 

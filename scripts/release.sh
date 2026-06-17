@@ -128,6 +128,7 @@ register_app() {
 
 register_app "macoutdated|MacOutdated|macoutdated|https://rphoto.github.io/myapps/macoutdated|15.0|appcast-macoutdated.xml|64SX28238Z"
 register_app "photos-export-gps-fixer|Photos Export GPS Fixer|photos-export-gps-fixer|https://rphoto.github.io/myapps/photos-export-gps-fixer|16.0|appcast.xml||https://rphoto.github.io/myapps/appcast.xml"
+register_app "intel-app-cleanup|Intel Component Manager|intel-app-cleanup|https://rphoto.github.io/myapps/intel-app-cleanup|26.0|appcast.xml|64SX28238Z"
 
 # Example future app:
 # register_app "newapp|NewApp|newapp|https://rphoto.github.io/myapps/newapp|16.0|appcast.xml"

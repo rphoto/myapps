@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Intel Component Manager Updates</title>
+    <link>https://rphoto.github.io/myapps/intel-app-cleanup/appcast.xml</link>
+    <description>Release notes and downloads</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.6</title>
+      <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+      <sparkle:version>16</sparkle:version>
+      <pubDate>Wed, 17 Jun 2026 15:26:22 +0000</pubDate>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/intel-app-cleanup/notes/1.6.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/intel-app-cleanup/releases/IntelComponentManager-1.6.zip"
+        sparkle:edSignature="+C96ZWMcrBUhueN2ZTvZNZ1cxEdQPJKBqMc3iJbBYiq/55t4gNlJNz9cD8Tc8wCeJOick4oPHJQF96/o/4e+Cg=="
+        length="2785203"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 3.31</title>
+      <sparkle:shortVersionString>3.31</sparkle:shortVersionString>
+      <sparkle:version>331</sparkle:version>
+      <pubDate>Fri, 10 Jul 2026 19:38:03 +0000</pubDate>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/3.31.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-3.31.zip"
+        sparkle:edSignature="zYOPASuRzgiBvmvZ7ekIG9Mqef5XMtTrs7gLxWFmUsaaq7U3ND+pDufp0dVXLdMkWl1hHSaNf6j2IRfq8L/0DA=="
+        length="11206089"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 3.30</title>
       <sparkle:shortVersionString>3.30</sparkle:shortVersionString>
       <sparkle:version>329</sparkle:version>
@@ -27,18 +39,6 @@
       <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-3.28.zip"
         sparkle:edSignature="Dz07mS53CRqb1GLTSVVlZTiVZxykQv5j8J0zp6zf3CA0Oq5lrXWRPTHV/6fnOZpIuLUbdkirsGw50n366VmECA=="
         length="11194601"
-        type="application/octet-stream" />
-    </item>
-    <item>
-      <title>Version 3.27</title>
-      <sparkle:shortVersionString>3.27</sparkle:shortVersionString>
-      <sparkle:version>327</sparkle:version>
-      <pubDate>Tue, 07 Jul 2026 21:19:17 +0000</pubDate>
-      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/macoutdated/notes/3.27.html</sparkle:releaseNotesLink>
-      <enclosure url="https://rphoto.github.io/myapps/macoutdated/releases/MacOutdated-3.27.zip"
-        sparkle:edSignature="AlI3ZeBmzqHXpm5NCmV2RPQ4mbj8ALqq8cPpFymXOipXO55K7ZiT7+AE4fSkesy/EXYu1y+tu2rgjDkef7QvAw=="
-        length="11150256"
         type="application/octet-stream" />
     </item>
   </channel>

@@ -16,8 +16,9 @@ For a given app key and exported `.app` bundle, `release.sh`:
 6. Writes `docs/<app>/notes/<version>.html`.
 7. Repairs, updates, and prunes the appcast XML (keeps the **3** newest versions).
 8. Stages changes and creates a local git commit.
+9. Prompts before pushing that release commit to GitHub; the default answer is **No**.
 
-It does **not** push to GitHub unless you pass `--push`. You can also commit and push manually from Terminal.
+The prompt is shown only after a successful release commit (or a history rewrite). Declining leaves the release committed locally so you can review or push it manually.
 
 ## Registered apps
 
@@ -85,7 +86,7 @@ Build in Xcode: **Product → Archive → Distribute App → Developer ID**. Not
 
 ### Git
 
-The script requires a git checkout of this repo. It commits locally; push separately or use `--push`.
+The script requires a git checkout of this repo. It commits locally, then asks whether to push. Press Return to keep the release local.
 
 ## Typical release workflow
 
@@ -93,14 +94,13 @@ The script requires a git checkout of this repo. It commits locally; push separa
 cd ~/Documents/git-repo-2025/myapps
 direnv allow    # if you just edited .envrc or cloned the repo
 
-# Optional dry run (no commit; still zips/signs in dry-run mode for preview)
+# Optional dry run (no files or commit; previews zipping/signing with a placeholder signature)
 ./scripts/release.sh --dry-run macoutdated ~/Downloads/MacOutdated-2.91.app
 
 # Real release
 ./scripts/release.sh macoutdated ~/Downloads/MacOutdated-2.91.app
 
-# Publish (or use --push on the command above)
-git push origin main
+# At the final prompt, enter y to publish or press Return to keep it local.
 ```
 
 Replace `macoutdated` and the `.app` path for other registered apps.
@@ -127,7 +127,7 @@ After each release, **only the three newest** appcast entries (and matching zips
 |------|--------|
 | `--dry-run` | Preview steps; uses a placeholder signature in the appcast preview path |
 | `--prune-only <app-key>` | Trim appcast/zips/notes to the last 3 versions without a new build |
-| `--push` | After commit, `git push` and probe the live appcast URL |
+| `--push` | Accepted for compatibility; push still requires the final confirmation |
 | `--require-notarized` | Fail if the exported `.app` is not notarized/stapled |
 | `--skip-codesign-preflight` | Skip Developer ID / team checks (debug only) |
 | `--rewrite-zip-history` | Remove stale release zip blobs from full git history (needs `git-filter-repo`; use with care) |
@@ -137,7 +137,7 @@ Examples:
 ```bash
 ./scripts/release.sh --prune-only macoutdated
 ./scripts/release.sh --dry-run --prune-only macoutdated
-./scripts/release.sh --push --require-notarized macoutdated ~/Downloads/MacOutdated-2.91.app
+./scripts/release.sh --require-notarized macoutdated ~/Downloads/MacOutdated-2.91.app
 ```
 
 ## Prune-only (no new build)
@@ -168,7 +168,7 @@ Each consumer app’s `Info.plist` `SUFeedURL` must match the canonical appcast 
 | `sign_update` not found | `SPARKLE_BIN` wrong or not on `PATH` | See [Sparkle CLI](#sparkle-cli-sign_update) above |
 | Codesign verify failed | Debug export or wrong cert | Re-export Release with Developer ID |
 | Commit failed | Hook, identity, or empty stage | Follow the recovery lines the script prints; fix and commit manually |
-| Users don’t see update | Forgot `git push` or Pages lag | `git push`; curl the appcast URL |
+| Users don’t see update | Declined the final push prompt or Pages lag | Push the release commit; curl the appcast URL |
 
 After a **macOS upgrade**, recreate machine-local paths (`~/Developer/Sparkle`, direnv allow hashes, pyenv `rehash`) as needed. The vendored MacOutdated `Sparkle-2.9.1/bin` path in `.envrc` survives as long as that repo is present on disk.
 

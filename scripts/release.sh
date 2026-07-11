@@ -4,8 +4,8 @@
 # Compatible with /bin/bash 3.2.x on macOS
 #
 # Usage:
-#   scripts/release.sh [--dry-run] [--push] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
-#   scripts/release.sh [--dry-run] [--push] [--rewrite-zip-history] --prune-only <app-key>
+#   scripts/release.sh [--dry-run] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
+#   scripts/release.sh [--dry-run] [--rewrite-zip-history] --prune-only <app-key>
 #
 # Preflight (release mode):
 #   - codesign --verify --deep --strict on the exported .app
@@ -15,9 +15,10 @@
 # Git:
 #   - Requires a git checkout of this repo before writing artifacts
 #   - On commit failure, prints recovery steps and exits non-zero
-#   - --push runs git push and probes the published appcast URL
+#   - After a successful release commit, prompts before pushing and probing the
+#     published appcast URL. The default answer is no.
 #   - --rewrite-zip-history removes stale release .zip blobs from all git history
-#     (requires git-filter-repo; use with --push for force-with-lease)
+#     (requires git-filter-repo; the final push confirmation uses force-with-lease)
 #
 # Examples:
 #   scripts/release.sh macoutdated ~/Downloads/MacOutdated-1.38.app
@@ -37,45 +38,11 @@ set -euo pipefail
 DRY_RUN=false
 PRUNE_ONLY=false
 REQUIRE_NOTARIZED=false
-GIT_PUSH=false
+PUSH_FLAG_USED=false
 REWRITE_ZIP_HISTORY=false
 SKIP_CODESIGN_PREFLIGHT=false
 ZIP_HISTORY_REWRITTEN=false
 ZIP_HISTORY_PUSH_LEASE=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --dry-run)
-      DRY_RUN=true
-      shift
-      ;;
-    --prune-only)
-      PRUNE_ONLY=true
-      shift
-      ;;
-    --require-notarized)
-      REQUIRE_NOTARIZED=true
-      shift
-      ;;
-    --push)
-      GIT_PUSH=true
-      shift
-      ;;
-    --rewrite-zip-history)
-      REWRITE_ZIP_HISTORY=true
-      shift
-      ;;
-    --skip-codesign-preflight)
-      SKIP_CODESIGN_PREFLIGHT=true
-      shift
-      ;;
-    --help|-h)
-      usage
-      ;;
-    *)
-      break
-      ;;
-  esac
-done
 
 # Max appcast entries plus matching zips/notes kept on disk after each release.
 APPCAST_KEEP=3
@@ -134,27 +101,71 @@ register_app "intel-app-cleanup|Intel Component Manager|intel-app-cleanup|https:
 # register_app "newapp|NewApp|newapp|https://rphoto.github.io/myapps/newapp|16.0|appcast.xml"
 
 usage() {
+  local exit_code="${1:-1}"
   cat >&2 <<USAGE
 Usage:
-  $0 [--dry-run] [--push] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
-  $0 [--dry-run] [--push] [--rewrite-zip-history] --prune-only <app-key>
+  $0 [--dry-run] [--rewrite-zip-history] [--require-notarized] [--skip-codesign-preflight] <app-key> /path/to/ExportedApp.app
+  $0 [--dry-run] [--rewrite-zip-history] --prune-only <app-key>
 
 Options:
   --require-notarized       Fail if exported .app is not notarized/stapled (default: warn only)
   --skip-codesign-preflight Skip Developer ID / team checks (not recommended)
-  --push                    After a successful commit, git push and probe the appcast URL
+  --push                    Accepted for compatibility; push still requires confirmation
   --rewrite-zip-history     Purge release .zip files from git history except zips on disk
-                            (requires git-filter-repo; rewrites history — use with --push)
+                            (requires git-filter-repo; rewrites history)
 
 Known app keys:
 $(list_app_keys | sed 's/^/  - /')
 USAGE
-  exit 1
+  exit "$exit_code"
 }
 
 list_app_keys() {
   printf '%s' "$APP_CONFIGS" | awk -F'|' 'NF >= 1 && $1 != "" { print $1 }'
 }
+
+# Parse options only after usage() and list_app_keys() are defined: --help may
+# be the first argument, and it renders the registered-app list.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --prune-only)
+      PRUNE_ONLY=true
+      shift
+      ;;
+    --require-notarized)
+      REQUIRE_NOTARIZED=true
+      shift
+      ;;
+    --push)
+      # Retain the old flag so existing release commands still work. Pushes are
+      # always confirmation-gated now, including when this flag is present.
+      PUSH_FLAG_USED=true
+      shift
+      ;;
+    --rewrite-zip-history)
+      REWRITE_ZIP_HISTORY=true
+      shift
+      ;;
+    --skip-codesign-preflight)
+      SKIP_CODESIGN_PREFLIGHT=true
+      shift
+      ;;
+    --help|-h)
+      usage 0
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if $PUSH_FLAG_USED; then
+  echo "• --push is accepted for compatibility; confirmation is still required."
+fi
 
 load_app_config() {
   local wanted_key="$1"
@@ -630,6 +641,15 @@ require_git_repo() {
   }
 }
 
+require_clean_index() {
+  if ! git -C "$GIT_ROOT" diff --cached --quiet; then
+    echo "Error: the git staging area already contains changes." >&2
+    echo "Commit or unstage them before releasing so they are not included in the release commit:" >&2
+    git -C "$GIT_ROOT" status --short >&2
+    exit 1
+  fi
+}
+
 list_kept_release_zip_paths() {
   local f relpath
   find "$DOCS_ROOT" -path '*/releases/*.zip' -type f 2>/dev/null | sort | while IFS= read -r f; do
@@ -762,6 +782,34 @@ push_and_verify_release() {
   fi
 }
 
+confirm_and_push_release() {
+  local force_push="${1:-false}"
+  local branch reply
+  branch=$(git -C "$GIT_ROOT" rev-parse --abbrev-ref HEAD)
+
+  echo ""
+  if [ "$force_push" = true ]; then
+    printf 'Push rewritten history to origin/%s with --force-with-lease? [y/N] ' "$branch"
+  else
+    printf 'Push this release commit to origin/%s? [y/N] ' "$branch"
+  fi
+
+  if ! IFS= read -r reply < /dev/tty; then
+    echo ""
+    echo "⚠️  No interactive terminal available; release remains committed locally." >&2
+    return 0
+  fi
+
+  case "$reply" in
+    [yY]|[yY][eE][sS])
+      push_and_verify_release "$force_push"
+      ;;
+    *)
+      echo "• Not pushed; release remains committed locally at $GIT_ROOT"
+      ;;
+  esac
+}
+
 stage_release_git() {
   local commit_msg="$1"
   require_git_repo
@@ -775,10 +823,8 @@ stage_release_git() {
     if $REWRITE_ZIP_HISTORY; then
       maybe_rewrite_zip_history
     fi
-    if $GIT_PUSH; then
-      push_and_verify_release "$ZIP_HISTORY_REWRITTEN"
-    elif $ZIP_HISTORY_REWRITTEN; then
-      echo "• Next step: git push --force-with-lease origin HEAD (history was rewritten)"
+    if $ZIP_HISTORY_REWRITTEN; then
+      confirm_and_push_release "$ZIP_HISTORY_REWRITTEN"
     fi
     return 0
   fi
@@ -811,13 +857,7 @@ stage_release_git() {
     maybe_rewrite_zip_history
   fi
 
-  if $GIT_PUSH; then
-    push_and_verify_release "$ZIP_HISTORY_REWRITTEN"
-  elif $ZIP_HISTORY_REWRITTEN; then
-    echo "• Next step: git push --force-with-lease origin HEAD (history was rewritten)"
-  else
-    echo "• Next step: git push from $GIT_ROOT (or re-run with --push)"
-  fi
+  confirm_and_push_release "$ZIP_HISTORY_REWRITTEN"
 }
 
 verify_exported_app() {
@@ -913,6 +953,7 @@ if $PRUNE_ONLY; then
   fi
 
   require_git_repo
+  require_clean_index
 
   TMP_DIR=$(mktemp -d -t release_prune_tmp.XXXXXX)
   cleanup() { [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"; }
@@ -931,6 +972,10 @@ fi
 APP_KEY="$1"
 APP_PATH="$2"
 load_app_config "$APP_KEY"
+require_git_repo
+if ! $DRY_RUN; then
+  require_clean_index
+fi
 
 export PATH="$SPARKLE_BIN:$PATH"
 
@@ -999,8 +1044,6 @@ if [ -z "${SHORT_VERSION:-}" ] || [ -z "${BUILD_VERSION:-}" ]; then
   echo "Error: unable to read version info from Info.plist" >&2
   exit 1
 fi
-
-require_git_repo
 
 if $DRY_RUN; then
   echo "• Would verify code signature and notarization on exported .app"
@@ -1102,12 +1145,10 @@ if $DRY_RUN; then
   echo "• Would stage files for git commit…"
   stage_release_paths
   run_cmd git -C "$GIT_ROOT" commit -m "$COMMIT_MSG"
-  if $GIT_PUSH; then
-    if $REWRITE_ZIP_HISTORY; then
-      echo "• Would git push --force-with-lease and verify appcast at: $APPCAST_URL"
-    else
-      echo "• Would git push and verify appcast at: $APPCAST_URL"
-    fi
+  if $REWRITE_ZIP_HISTORY; then
+    echo "• Would prompt before git push --force-with-lease and verify appcast at: $APPCAST_URL"
+  else
+    echo "• Would prompt before git push and verify appcast at: $APPCAST_URL"
   fi
 
   if $REWRITE_ZIP_HISTORY; then

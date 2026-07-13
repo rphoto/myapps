@@ -14,7 +14,7 @@ For a given app key and exported `.app` bundle, `release.sh`:
 4. Zips the `.app` with `ditto` into `docs/<app>/releases/`.
 5. Signs the zip with Sparkle `sign_update` (EdDSA key in your keychain).
 6. Writes `docs/<app>/notes/<version>.html`.
-7. Repairs, updates, and prunes the appcast XML (keeps the **3** newest versions).
+7. Repairs, updates, and prunes the appcast XML and ZIPs (keeps the **3** newest versions), while retaining the **20** newest release-note pages for the Previous versions section.
 8. Stages changes and creates a local git commit.
 9. Prompts before pushing that release commit to GitHub; the default answer is **No**.
 
@@ -119,14 +119,14 @@ For app key `macoutdated` and version `2.91`:
 | Notes | `docs/macoutdated/notes/2.91.html` |
 | Appcast | `docs/macoutdated/appcast-macoutdated.xml` |
 
-After each release, **only the three newest** appcast entries (and matching zips/notes) are kept (`APPCAST_KEEP=3` in `release.sh`).
+After each release, the **three newest** appcast entries and matching ZIPs are kept (`APPCAST_KEEP=3`), while the **20 newest** release-note pages are kept (`RELEASE_NOTES_KEEP=20`). This lets the latest note page show the 20 previous versions even though only three downloads remain available.
 
 ## Command-line options
 
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | Preview steps; uses a placeholder signature in the appcast preview path |
-| `--prune-only <app-key>` | Trim appcast/zips/notes to the last 3 versions without a new build |
+| `--prune-only <app-key>` | Trim appcast and ZIPs to the last 3 versions, and release-note pages to the last 20, without a new build |
 | `--push` | Accepted for compatibility; push still requires the final confirmation |
 | `--require-notarized` | Fail if the exported `.app` is not notarized/stapled |
 | `--skip-codesign-preflight` | Skip Developer ID / team checks (debug only) |

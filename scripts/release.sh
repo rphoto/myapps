@@ -44,8 +44,11 @@ SKIP_CODESIGN_PREFLIGHT=false
 ZIP_HISTORY_REWRITTEN=false
 ZIP_HISTORY_PUSH_LEASE=""
 
-# Max appcast entries plus matching zips/notes kept on disk after each release.
+# Max appcast entries plus matching zips kept on disk after each release.
 APPCAST_KEEP=3
+
+# Max release-note pages retained so new notes can show recent release history.
+RELEASE_NOTES_KEEP=20
 
 run_cmd() {
   if $DRY_RUN; then
@@ -257,6 +260,20 @@ zip_version_from_name() {
   printf '%s' "$name"
 }
 
+version_to_sortable() {
+  local ver="$1"
+  echo "$ver" | awk -F. '{
+    for (i = 1; i <= NF; i++) {
+      if (i > 1) printf "."
+      printf "%05d", $i
+    }
+    for (i = NF + 1; i <= 3; i++) {
+      printf ".00000"
+    }
+    printf "\n"
+  }'
+}
+
 preview_prune_stats() {
   local simulate_version="${1:-}"
   [ ! -f "$APPCAST" ] && return 0
@@ -356,16 +373,24 @@ preview_prune_stats() {
       [ -f "$f" ] && note_count=$((note_count + 1))
     done
   fi
+  if [ -n "$simulate_version" ] && [ ! -f "$NOTES_DIR/$simulate_version.html" ]; then
+    note_count=$((note_count + 1))
+  fi
 
   local remove_items=$((total - kept))
   local remove_zips=$((zip_count - kept))
-  local remove_notes=$((note_count - kept))
+  local kept_notes=$note_count
+  if [ "$kept_notes" -gt "$RELEASE_NOTES_KEEP" ]; then
+    kept_notes=$RELEASE_NOTES_KEEP
+  fi
+  local remove_notes=$((note_count - kept_notes))
   [ "$remove_items" -lt 0 ] && remove_items=0
   [ "$remove_zips" -lt 0 ] && remove_zips=0
   [ "$remove_notes" -lt 0 ] && remove_notes=0
 
   echo "• Prune (keep $APPCAST_KEEP): $total feed item(s) with zips; would keep $kept"
-  echo "  Would remove ~$remove_items appcast item(s), ~$remove_zips zip(s), ~$remove_notes note(s)"
+  echo "  Would remove ~$remove_items appcast item(s) and ~$remove_zips zip(s)"
+  echo "  Would keep $kept_notes of $note_count release note(s); remove ~$remove_notes"
 }
 
 prune_old_releases() {
@@ -481,7 +506,7 @@ EOF_PRUNE_END
     return 1
   }
 
-  local removed_zips=0 removed_notes=0
+  local removed_zips=0 removed_notes=0 kept_note_count=0
   local f ver
 
   if [ -d "$RELEASES_DIR" ]; then
@@ -497,10 +522,32 @@ EOF_PRUNE_END
   fi
 
   if [ -d "$NOTES_DIR" ]; then
+    local tmp_note_versions="$TMP_DIR/prune_note_versions.txt"
+    local tmp_keep_note_versions="$TMP_DIR/prune_keep_note_versions.txt"
+    : > "$tmp_note_versions"
+
     for f in "$NOTES_DIR"/*.html; do
       [ -f "$f" ] || continue
       ver=$(basename "$f" .html)
-      if is_kept_version "$ver"; then
+      printf '%s %s\n' "$(version_to_sortable "$ver")" "$ver" >> "$tmp_note_versions"
+    done
+
+    if [ -s "$tmp_note_versions" ]; then
+      sort -r "$tmp_note_versions" | awk -v keep="$RELEASE_NOTES_KEEP" 'NR <= keep { print $2 }' > "$tmp_keep_note_versions"
+    else
+      : > "$tmp_keep_note_versions"
+    fi
+    kept_note_count=$(wc -l < "$tmp_keep_note_versions" | tr -d ' ')
+
+    is_kept_note_version() {
+      local v="$1"
+      grep -Fxq "$v" "$tmp_keep_note_versions"
+    }
+
+    for f in "$NOTES_DIR"/*.html; do
+      [ -f "$f" ] || continue
+      ver=$(basename "$f" .html)
+      if is_kept_note_version "$ver"; then
         continue
       fi
       run_cmd rm -f "$f"
@@ -510,7 +557,7 @@ EOF_PRUNE_END
 
   local removed_items=$((total - kept_count))
   [ "$removed_items" -lt 0 ] && removed_items=0
-  echo "• Pruned releases: kept $kept_count of $total appcast item(s); removed $removed_items item(s), $removed_zips zip(s), $removed_notes note(s)"
+  echo "• Pruned releases: kept $kept_count of $total appcast item(s) and $kept_note_count release note(s); removed $removed_items item(s), $removed_zips zip(s), $removed_notes note(s)"
 }
 
 ensure_appcast_exists() {
@@ -937,7 +984,7 @@ if $PRUNE_ONLY; then
   load_app_config "$APP_KEY"
 
   if $DRY_RUN; then
-    echo "• Would prune $APP_NAME release history (keep $APPCAST_KEEP)"
+    echo "• Would prune $APP_NAME appcast/zip history (keep $APPCAST_KEEP) and release notes (keep $RELEASE_NOTES_KEEP)"
     echo "  Appcast: $APPCAST"
     preview_prune_stats
     if $REWRITE_ZIP_HISTORY; then
@@ -1184,20 +1231,6 @@ extract_whatsnew_lis() {
   ' "$file" | grep -oE '<li[^>]*>.*</li>' || true
 }
 
-version_to_sortable() {
-  local ver="$1"
-  echo "$ver" | awk -F. '{
-    for (i = 1; i <= NF; i++) {
-      if (i > 1) printf "."
-      printf "%05d", $i
-    }
-    for (i = NF + 1; i <= 3; i++) {
-      printf ".00000"
-    }
-    printf "\n"
-  }'
-}
-
 if [ -n "$NOTES_TEMPLATE" ] && [ -f "$NOTES_TEMPLATE" ]; then
   sed -e "s/{{VERSION}}/$SHORT_VERSION/g" \
       -e "s/{{BUILD}}/$BUILD_VERSION/g" \
@@ -1233,8 +1266,10 @@ if ls -1 "$NOTES_DIR"/*.html >/dev/null 2>&1; then
   if [ -s "$tmp_versions" ]; then
     tmp_sorted="$TMP_DIR/sorted_versions.txt"
     sort -r "$tmp_versions" > "$tmp_sorted"
+    previous_count=0
 
     while IFS=' ' read -r sortable_ver ver || [ -n "$ver" ]; do
+      [ "$previous_count" -ge "$RELEASE_NOTES_KEEP" ] && break
       [ -z "$ver" ] && continue
       f="$NOTES_DIR/$ver.html"
       [ ! -f "$f" ] && continue
@@ -1242,6 +1277,7 @@ if ls -1 "$NOTES_DIR"/*.html >/dev/null 2>&1; then
       lis=$(extract_whatsnew_lis "$f")
       [ -z "$lis" ] && lis=$(extract_lis "$f")
       [ -z "$lis" ] && continue
+      previous_count=$((previous_count + 1))
 
       {
         printf '    <li><strong>v%s</strong>\n' "$ver"

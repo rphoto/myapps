@@ -27,6 +27,7 @@ The prompt is shown only after a successful release commit (or a history rewrite
 | `macoutdated` | MacOutdated | `docs/macoutdated/` | `appcast-macoutdated.xml` |
 | `photos-export-gps-fixer` | Photos Export GPS Fixer | `docs/photos-export-gps-fixer/` | `appcast.xml` |
 | `intel-app-cleanup` | Intel Component Manager | `docs/intel-app-cleanup/` | `appcast.xml` |
+| `insta360-toolbox` | Insta360 Toolbox | `docs/insta360-toolbox/` | `appcast.xml` |
 
 Add a new app by copying a `register_app` line in `release.sh` (see the APP CONFIG section).
 

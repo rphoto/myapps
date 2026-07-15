@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 1.11</title>
+      <sparkle:shortVersionString>1.11</sparkle:shortVersionString>
+      <sparkle:version>111</sparkle:version>
+      <pubDate>Wed, 15 Jul 2026 01:25:53 +0000</pubDate>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/insta360-toolbox/notes/1.11.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/insta360-toolbox/releases/Insta360Toolbox-1.11.zip"
+        sparkle:edSignature="ZZWlXX4V3svnx8v9+dtCAfP+yJzuy+gdkQwgDk/mRUrxkC9j5vzVGgQVuyzem9y6K+YOCB/Ki0myBpt4W9f1AQ=="
+        length="5669001"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 1.10</title>
       <sparkle:shortVersionString>1.10</sparkle:shortVersionString>
       <sparkle:version>110</sparkle:version>

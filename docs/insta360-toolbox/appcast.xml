@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Insta360 Toolbox Updates</title>
+    <link>https://rphoto.github.io/myapps/insta360-toolbox/appcast.xml</link>
+    <description>Release notes and downloads</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.0</title>
+      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <sparkle:version>1</sparkle:version>
+      <pubDate>Wed, 15 Jul 2026 00:22:21 +0000</pubDate>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/insta360-toolbox/notes/1.0.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/insta360-toolbox/releases/Insta360Toolbox-1.0.zip"
+        sparkle:edSignature="Szseu7YzqT6XxtjeF8OmYIOW7ieW4FdXPydTHLVutLCBQOrRSjaZpntdtDq1RLkAch3KOPDtcRz6/1unIH/WAg=="
+        length="5544427"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>

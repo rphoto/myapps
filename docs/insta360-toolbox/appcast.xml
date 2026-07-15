@@ -6,6 +6,18 @@
     <description>Release notes and downloads</description>
     <language>en</language>
     <item>
+      <title>Version 1.12</title>
+      <sparkle:shortVersionString>1.12</sparkle:shortVersionString>
+      <sparkle:version>112</sparkle:version>
+      <pubDate>Wed, 15 Jul 2026 19:33:37 +0000</pubDate>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/insta360-toolbox/notes/1.12.html</sparkle:releaseNotesLink>
+      <enclosure url="https://rphoto.github.io/myapps/insta360-toolbox/releases/Insta360Toolbox-1.12.zip"
+        sparkle:edSignature="r8R1Dwn1yJYQaB9/jyb2/GpThWD0puJ5Zyh4Ul0rXO6jwtd8NfqpIVQwZY8VbnitIRuN5q4pqxj8eYHAMBBJBA=="
+        length="6031064"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 1.11</title>
       <sparkle:shortVersionString>1.11</sparkle:shortVersionString>
       <sparkle:version>111</sparkle:version>
@@ -27,18 +39,6 @@
       <enclosure url="https://rphoto.github.io/myapps/insta360-toolbox/releases/Insta360Toolbox-1.10.zip"
         sparkle:edSignature="RQ+5W3lI8nQs4y7BRosoN6UKfezV/3pNfTrGY66be5OLF2F5yhoX3U5V1KK8vwMXUMj9+p8sBjBJQvr+qfwUBg=="
         length="5544702"
-        type="application/octet-stream" />
-    </item>
-    <item>
-      <title>Version 1.0</title>
-      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
-      <sparkle:version>1</sparkle:version>
-      <pubDate>Wed, 15 Jul 2026 00:22:21 +0000</pubDate>
-      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-      <sparkle:releaseNotesLink>https://rphoto.github.io/myapps/insta360-toolbox/notes/1.0.html</sparkle:releaseNotesLink>
-      <enclosure url="https://rphoto.github.io/myapps/insta360-toolbox/releases/Insta360Toolbox-1.0.zip"
-        sparkle:edSignature="Szseu7YzqT6XxtjeF8OmYIOW7ieW4FdXPydTHLVutLCBQOrRSjaZpntdtDq1RLkAch3KOPDtcRz6/1unIH/WAg=="
-        length="5544427"
         type="application/octet-stream" />
     </item>
   </channel>
